@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<span class="badge">{{ _('badge_text') }}</span>
+<h1>{{ _('home_title') }}</h1>
+<p>{{ _('home_desc') }}</p>
+<div class="button-row">
+    <a class="button" href="{{ url_for('manage') }}">{{ _('btn_manage') }}</a>
+    <button class="button test-btn" data-type="ROM">{{ _('btn_test_rom') }}</button>
+    <button class="button test-btn" data-type="DSK">{{ _('btn_test_dsk') }}</button>
+</div>
+<h2>{{ _('api_endpoint') }}</h2>
+<p><code>/index2.php/</code></p>
+<h2>{{ _('parameters') }}</h2>
+<table class="api-table">
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>{{ _('param_desc') }}</th>
+            <th>Default</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>type</code></td>
+            <td>query</td>
+            <td>string</td>
+            <td>ROM / DSK</td>
+            <td><code>ROM</code></td>
+        </tr>
+        <tr>
+            <td><code>char</code></td>
+            <td>query</td>
+            <td>string</td>
+            <td>Filter</td>
+            <td><code>a</code></td>
+        </tr>
+        <tr>
+            <td><code>download</code></td>
+            <td>query</td>
+            <td>integer</td>
+            <td>Index</td>
+            <td>-</td>
+        </tr>
+    </tbody>
+</table>
+<h2>{{ _('examples') }}</h2>
+<pre>/index2.php/?type=ROM&char=a
+/index2.php/?type=DSK&char=a</pre>
+<h2>{{ _('response_format') }}</h2>
+<p>{{ _('response_format_desc') }}</p>
+<div class="footer">{{ _('footer_text') }}</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="resultModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">{{ _('modal_title') }}</h3>
+            <button class="modal-close" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Results will be injected here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const modal = document.getElementById('resultModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    const closeBtn = document.getElementById('closeModal');
+
+    const i18n = {
+        loading: "{{ _('loading') }}",
+        no_files: "{{ _('no_files') }}",
+        table_name: "{{ _('table_name') }}",
+        table_size: "{{ _('table_size') }}",
+        table_action: "{{ _('table_action') }}",
+        download: "{{ _('download') }}"
+    };
+
+    function showModal(title, content) {
+        modalTitle.textContent = title;
+        modalBody.innerHTML = content;
+        modal.style.display = 'flex';
+    }
+
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    document.querySelectorAll('.test-btn').forEach(btn => {
+        btn.onclick = async () => {
+            const type = btn.getAttribute('data-type');
+            showModal(`${type} {{ _('modal_title') }}`, `<div class="loading-spinner">${i18n.loading}</div>`);
+            
+            try {
+                const response = await fetch(`/index2.php/?type=${type}&char=a`);
+                if (!response.ok) throw new Error('Network error');
+                const text = await response.text();
+                
+                const lines = text.trim().split('\n');
+                if (lines.length === 0 || (lines.length === 1 && lines[0].startsWith('No files found'))) {
+                    modalBody.innerHTML = `<p>${i18n.no_files}</p>`;
+                    return;
+                }
+
+                let html = `
+                    <table class="result-list">
+                        <thead>
+                            <tr>
+                                <th>${i18n.table_name}</th>
+                                <th>${i18n.table_size}</th>
+                                <th>${i18n.table_action}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                lines.forEach((line, index) => {
+                    const [name, size] = line.split('\t');
+                    if (name && size) {
+                        html += `
+                            <tr>
+                                <td>${name}</td>
+                                <td>${size}</td>
+                                <td><a href="/index2.php/?type=${type}&char=a&download=${index}" class="badge" style="text-decoration:none">${i18n.download}</a></td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                html += '</tbody></table>';
+                modalBody.innerHTML = html;
+            } catch (error) {
+                modalBody.innerHTML = `<p style="color:#ff5555">Error: ${error.message}</p>`;
+            }
+        };
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+"""
+Flask webserver that returns plain text directory listing from files/ directory
+"""
+
+import os
+import shutil
+from flask import Flask, request, Response, render_template, redirect, url_for, session
+from werkzeug.utils import secure_filename
+
+from utils import (
+    SERVE_DIRECTORY,
+    safe_path,
+    list_file_entries,
+    list_directory_structured,
+)
+from translations import TRANSLATIONS
+
+app = Flask(__name__)
+app.secret_key = os.urandom(24)
+
+# --- DRY Helpers ---
+
+def get_msg(key):
+    """Get translated message based on current session language."""
+    lang = session.get('lang', 'nl')
+    return TRANSLATIONS.get(lang, {}).get(key, key)
+
+def render_manage(message=None):
+    """Helper to consistently render the manage page with listing."""
+    return render_template("manage.html", message=message, items=list_directory_structured())
+
+# --- Context Processors ---
+
+@app.context_processor
+def inject_translate():
+    lang = session.get('lang', 'nl')
+    return dict(_=lambda key: TRANSLATIONS.get(lang, {}).get(key, key), current_lang=lang)
+
+# --- Routes ---
+
+@app.route("/set_lang/<lang>")
+def set_lang(lang):
+    if lang in TRANSLATIONS:
+        session['lang'] = lang
+    return redirect(request.referrer or url_for('index'))
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/manage")
+def manage():
+    return render_manage()
+
+@app.route("/manage/upload", methods=["POST"])
+def upload_file():
+    upload = request.files.get("file")
+    if not upload or upload.filename == "":
+        return render_manage(get_msg("msg_select_file"))
+    
+    filename = secure_filename(upload.filename)
+    if not filename:
+        return render_manage(get_msg("msg_invalid_filename"))
+    
+    target_dir = request.form.get("target_dir", "")
+    try:
+        dest_dir = safe_path(target_dir)
+    except ValueError:
+        return render_manage(get_msg("msg_invalid_path"))
+    
+    os.makedirs(dest_dir, exist_ok=True)
+    destination = os.path.join(dest_dir, filename)
+    destination = safe_path(os.path.relpath(destination, SERVE_DIRECTORY))
+    upload.save(destination)
+    
+    rel_path = os.path.relpath(destination, SERVE_DIRECTORY).replace('\\', '/')
+    return render_manage(f"{get_msg('msg_upload_success')} /{rel_path}.")
+
+@app.route("/manage/delete", methods=["POST"])
+def delete_item():
+    target = request.form.get("path", "")
+    if not target:
+        return render_manage(get_msg("msg_provide_path"))
+    
+    try:
+        target_path = safe_path(target)
+    except ValueError:
+        return render_manage(get_msg("msg_invalid_path"))
+    
+    if not os.path.exists(target_path):
+        return render_manage(get_msg("msg_not_found"))
+    
+    if os.path.abspath(target_path) == os.path.abspath(SERVE_DIRECTORY):
+        return render_manage(get_msg("msg_root_delete_denied"))
+    
+    if os.path.isdir(target_path):
+        shutil.rmtree(target_path)
+    else:
+        os.remove(target_path)
+    
+    rel_path = os.path.relpath(target_path, SERVE_DIRECTORY).replace('\\', '/')
+    return render_manage(f"{get_msg('msg_deleted')} /{rel_path}.")
+
+@app.route("/manage/rename", methods=["POST"])
+def rename_item():
+    old_path = request.form.get("old_path", "")
+    new_path = request.form.get("new_path", "")
+    if not old_path or not new_path:
+        return render_manage(get_msg("msg_provide_both_paths"))
+    
+    try:
+        source_path = safe_path(old_path)
+        destination_path = safe_path(new_path)
+    except ValueError:
+        return render_manage(get_msg("msg_invalid_path"))
+    
+    if not os.path.exists(source_path):
+        return render_manage(get_msg("msg_source_not_found"))
+    
+    if os.path.exists(destination_path):
+        return render_manage(get_msg("msg_dest_exists"))
+    
+    os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+    os.rename(source_path, destination_path)
+    
+    rel_old = os.path.relpath(source_path, SERVE_DIRECTORY).replace('\\', '/')
+    rel_new = os.path.relpath(destination_path, SERVE_DIRECTORY).replace('\\', '/')
+    return render_manage(f"{get_msg('msg_moved')} /{rel_old} {get_msg('msg_to')} /{rel_new}.")
+
+@app.route("/manage/mkdir", methods=["POST"])
+def make_dir():
+    dir_path = request.form.get("dir_path", "")
+    if not dir_path:
+        return render_manage(get_msg("msg_provide_dirname"))
+    
+    try:
+        destination = safe_path(dir_path)
+    except ValueError:
+        return render_manage(get_msg("msg_invalid_path"))
+    
+    if os.path.isfile(destination):
+        return render_manage(get_msg("msg_file_exists"))
+    
+    os.makedirs(destination, exist_ok=True)
+    rel_path = os.path.relpath(destination, SERVE_DIRECTORY).replace('\\', '/')
+    return render_manage(f"{get_msg('msg_mkdir_success')} /{rel_path}.")
+
+@app.route("/index2.php/")
+def directory_listing():
+    """Return directory listing based on type parameter (ROM or DSK)"""
+    request_type = request.args.get("type", "ROM").upper()
+    request_char = request.args.get("char", "a")
+    download_index = request.args.get("download", None)
+
+    if request_type == "ROM":
+        extensions = [".rom", ".ROM"]
+    elif request_type == "DSK":
+        extensions = [".dsk", ".DSK"]
+    else:
+        return f"Error: Unsupported type '{request_type}'. Use ROM or DSK.", 400
+
+    files = list_file_entries(extensions, request_char=request_char)
+
+    if download_index is not None:
+        if not download_index.isdigit():
+            return f"Error: Invalid download index {download_index}.", 400
+        download_idx = int(download_index)
+        if not 0 <= download_idx < len(files):
+            return f"Error: Invalid download index {download_idx}.", 400
+
+        game_name, size, rel_path = files[download_idx]
+        item_path = safe_path(rel_path)
+        try:
+            with open(item_path, "rb") as f:
+                file_content = f.read()
+            
+            header = f"{'size:' if request_type == 'DSK' else 'type:,start:,size:'}{len(file_content)}{',disks:1' if request_type == 'DSK' else ''},name:{game_name}.{request_type.lower()}"
+
+            def generate():
+                yield header.encode("utf-8")
+                yield b"\n"
+                yield file_content
+
+            response = Response(generate(), mimetype="application/octet-stream")
+            response.headers["Expires"] = "0"
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            return response
+        except (OSError, IOError) as e:
+            return f"Error reading file: {str(e)}", 500
+
+    result = "".join(f"{game_name}\t{size}\n" for game_name, size, _ in files) if files else "No files found\t0\n"
+
+    response = Response(result, mimetype="text/plain")
+    response.headers["Expires"] = "0"
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    return response
+
+@app.route("/<path:path>")
+def catch_all(path):
+    return f"404 - Path not found: /{path}\nOnly /index2.php/ is supported", 404
+
+if __name__ == "__main__":
+    os.makedirs(SERVE_DIRECTORY, exist_ok=True)
+    app.run(debug=True, host="0.0.0.0", port=5001)

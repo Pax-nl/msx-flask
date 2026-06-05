@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('manage_title') }}{% endblock %}
+
+{% block content %}
+<h1>{{ _('manage_title') }}</h1>
+<p>{{ _('manage_desc') }}</p>
+
+<div class="button-row">
+    <a class="button" href="{{ url_for('index') }}">{{ _('btn_home') }}</a>
+    <button class="button" id="openUpload">{{ _('upload_title') }}</button>
+    <button class="button secondary" id="openMkdir">{{ _('mkdir_title') }}</button>
+</div>
+
+{% if message %}
+<p class="message">{{ message }}</p>
+{% endif %}
+
+<table class="manage-table">
+    <thead>
+        <tr>
+            <th>{{ _('table_name') }}</th>
+            <th style="width: 100px;">{{ _('table_action') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% set current_folder = [None] %}
+        {% for item in items %}
+            {% if item.display_path != current_folder[0] %}
+                <tr class="folder-group-row">
+                    <td colspan="2">
+                        <span style="color: var(--msx-bright-green); font-weight: bold;">📁 {{ item.display_path }}</span>
+                    </td>
+                </tr>
+                {% if current_folder.append(item.display_path) %}{% endif %}
+            {% endif %}
+            <tr>
+                <td style="padding-left: 2rem;">
+                    <span class="type-icon">{% if item.type == 'dir' %}📁{% else %}📄{% endif %}</span>
+                    {{ item.name }}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="icon-btn rename-trigger" 
+                                data-path="{{ item.path }}" 
+                                title="{{ _('rename_title') }}">📝</button>
+                        <button class="icon-btn delete delete-trigger" 
+                                data-path="{{ item.path }}" 
+                                title="{{ _('delete_title') }}">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="footer">{{ _('api_ready_footer') }}</div>
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="uploadModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">{{ _('upload_title') }}</h3>
+            <button class="modal-close closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                <label>{{ _('label_file') }}</label>
+                <input type="file" name="file" required>
+                <label>{{ _('label_target_dir') }}</label>
+                <input type="text" name="target_dir" placeholder="{{ _('placeholder_dir') }}">
+                <button type="submit">{{ _('btn_upload') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mkdir Modal -->
+<div class="modal-overlay" id="mkdirModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">{{ _('mkdir_title') }}</h3>
+            <button class="modal-close closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form action="{{ url_for('make_dir') }}" method="post">
+                <label>{{ _('label_dir_path') }}</label>
+                <input type="text" name="dir_path" placeholder="{{ _('placeholder_dir') }}" required>
+                <button type="submit">{{ _('btn_mkdir') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Rename Modal -->
+<div class="modal-overlay" id="renameModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">{{ _('rename_title') }}</h3>
+            <button class="modal-close closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form action="{{ url_for('rename_item') }}" method="post">
+                <label>{{ _('label_old_path') }}</label>
+                <input type="text" name="old_path" id="renameOldPath" readonly>
+                <label>{{ _('label_new_path') }}</label>
+                <input type="text" name="new_path" placeholder="{{ _('placeholder_file') }}" required autofocus>
+                <button type="submit">{{ _('btn_rename') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal (Confirmation) -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">{{ _('delete_title') }}</h3>
+            <button class="modal-close closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteConfirmText"></p>
+            <form action="{{ url_for('delete_item') }}" method="post">
+                <input type="hidden" name="path" id="deletePath">
+                <button type="submit" class="button" style="background:#822; border-color:#f55;">{{ _('btn_delete') }}</button>
+                <button type="button" class="button secondary closeModal">{{ _('btn_home') }} (Cancel)</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function setupModal(modalId, triggerId) {
+        const modal = document.getElementById(modalId);
+        const trigger = document.getElementById(triggerId);
+        const closeBtns = modal.querySelectorAll('.closeModal');
+
+        if (trigger) {
+            trigger.onclick = () => modal.style.display = 'flex';
+        }
+
+        closeBtns.forEach(btn => {
+            btn.onclick = () => modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target == modal) modal.style.display = 'none';
+        });
+    }
+
+    setupModal('uploadModal', 'openUpload');
+    setupModal('mkdirModal', 'openMkdir');
+
+    // Rename Logic
+    const renameModal = document.getElementById('renameModal');
+    document.querySelectorAll('.rename-trigger').forEach(btn => {
+        btn.onclick = () => {
+            const path = btn.getAttribute('data-path');
+            document.getElementById('renameOldPath').value = path;
+            renameModal.style.display = 'flex';
+        };
+    });
+    setupModal('renameModal', null);
+
+    // Delete Logic
+    const deleteModal = document.getElementById('deleteModal');
+    document.querySelectorAll('.delete-trigger').forEach(btn => {
+        btn.onclick = () => {
+            const path = btn.getAttribute('data-path');
+            document.getElementById('deletePath').value = path;
+            document.getElementById('deleteConfirmText').textContent = `{{ _('msg_deleted') }} ${path}?`;
+            deleteModal.style.display = 'flex';
+        };
+    });
+    setupModal('deleteModal', null);
+</script>
+{% endblock %}

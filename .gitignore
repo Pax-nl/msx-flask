@@ -1,0 +1,5 @@
+*.dsk
+*.DSK
+.env
+files/
+__pycache__/
