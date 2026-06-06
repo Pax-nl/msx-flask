@@ -5,6 +5,8 @@ Flask webserver that returns plain text directory listing from files/ directory
 
 import os
 import shutil
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, request, Response, render_template, redirect, url_for, session
 from werkzeug.utils import secure_filename
 
@@ -18,6 +20,20 @@ from translations import TRANSLATIONS
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+# --- Logging Configuration ---
+
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+file_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+))
+file_handler.setLevel(logging.INFO)
+app.logger.addHandler(file_handler)
+app.logger.setLevel(logging.INFO)
+app.logger.info('msx-flask startup')
 
 # --- DRY Helpers ---
 
@@ -75,6 +91,7 @@ def upload_file():
     upload.save(destination)
     
     rel_path = os.path.relpath(destination, SERVE_DIRECTORY).replace('\\', '/')
+    app.logger.info(f"File uploaded: {rel_path} from {request.remote_addr}")
     return render_manage(f"{get_msg('msg_upload_success')} /{rel_path}.")
 
 @app.route("/manage/delete", methods=["POST"])
@@ -100,6 +117,7 @@ def delete_item():
         os.remove(target_path)
     
     rel_path = os.path.relpath(target_path, SERVE_DIRECTORY).replace('\\', '/')
+    app.logger.info(f"Item deleted: {rel_path} by {request.remote_addr}")
     return render_manage(f"{get_msg('msg_deleted')} /{rel_path}.")
 
 @app.route("/manage/rename", methods=["POST"])
@@ -126,6 +144,7 @@ def rename_item():
     
     rel_old = os.path.relpath(source_path, SERVE_DIRECTORY).replace('\\', '/')
     rel_new = os.path.relpath(destination_path, SERVE_DIRECTORY).replace('\\', '/')
+    app.logger.info(f"Item renamed: {rel_old} to {rel_new} by {request.remote_addr}")
     return render_manage(f"{get_msg('msg_moved')} /{rel_old} {get_msg('msg_to')} /{rel_new}.")
 
 @app.route("/manage/mkdir", methods=["POST"])
@@ -144,6 +163,7 @@ def make_dir():
     
     os.makedirs(destination, exist_ok=True)
     rel_path = os.path.relpath(destination, SERVE_DIRECTORY).replace('\\', '/')
+    app.logger.info(f"Directory created: {rel_path} by {request.remote_addr}")
     return render_manage(f"{get_msg('msg_mkdir_success')} /{rel_path}.")
 
 @app.route("/index2.php/")
@@ -171,6 +191,7 @@ def directory_listing():
 
         game_name, size, rel_path = files[download_idx]
         item_path = safe_path(rel_path)
+        app.logger.info(f"Downloading file: {rel_path} for {request.remote_addr}")
         try:
             with open(item_path, "rb") as f:
                 file_content = f.read()

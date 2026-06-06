@@ -2,4 +2,5 @@
 *.DSK
 .env
 files/
+logs/
 __pycache__/
