@@ -27,10 +27,9 @@ def safe_path(relative_path):
     return destination
 
 def list_file_entries(extensions, request_char="a", filter_by_name=True):
-...
-    # Sort by path so it looks like a tree
-    return sorted(items, key=lambda x: (x["path"]))
-
+    entries = []
+    for root, _, filenames in os.walk(SERVE_DIRECTORY):
+        for filename in filenames:
             if any(filename.endswith(ext) for ext in extensions):
                 file_path = os.path.join(root, filename)
                 if not os.path.isfile(file_path):
@@ -64,6 +63,7 @@ def list_file_entries(extensions, request_char="a", filter_by_name=True):
             unique.append(entry)
             seen.add(entry)
     return unique
+
 def list_directory_structured():
     """Returns a list of dictionaries representing the file structure, sorted by path."""
     items = []
@@ -104,6 +104,4 @@ def list_directory_structured():
             })
 
     # Sort by display_path to group them, then by type (dirs first), then name
-    return sorted(items, key=lambda x: (x["display_path"], x["type"] == "file", x["name"]))
-
     return sorted(items, key=lambda x: (x["display_path"], x["type"] == "file", x["name"]))
