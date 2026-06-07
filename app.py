@@ -4,6 +4,7 @@ Flask webserver that returns plain text directory listing from files/ directory
 """
 
 import os
+import sys
 import shutil
 import logging
 from logging.handlers import RotatingFileHandler
@@ -31,7 +32,15 @@ file_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 ))
 file_handler.setLevel(logging.INFO)
+
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s'
+))
+stream_handler.setLevel(logging.INFO)
+
 app.logger.addHandler(file_handler)
+app.logger.addHandler(stream_handler)
 app.logger.setLevel(logging.INFO)
 app.logger.info('msx-flask startup')
 
@@ -170,6 +179,7 @@ def make_dir():
 @app.route("/index2.php/")
 def directory_listing():
     """Return directory listing based on type parameter (ROM or DSK)"""
+    app.logger.info(f"API Request: {request.url} from {request.remote_addr} (UA: {request.user_agent})")
     request_type = request.args.get("type", "ROM").upper()
     request_char = request.args.get("char", "a")
     download_index = request.args.get("download", None)
@@ -179,6 +189,7 @@ def directory_listing():
     elif request_type == "DSK":
         extensions = [".dsk", ".DSK"]
     else:
+        app.logger.warning(f"Unsupported type: {request_type}")
         return f"Error: Unsupported type '{request_type}'. Use ROM or DSK.", 400
 
     files = list_file_entries(extensions, request_char=request_char)
@@ -204,22 +215,33 @@ def directory_listing():
                 yield b"\n"
                 yield file_content
 
-            response = Response(generate(), content_type="text/html; charset=UTF-8")
+            response = Response(generate())
+            response.headers["Content-type"] = "text/html; charset=UTF-8"
             response.headers["Expires"] = "0"
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            response.headers["Server"] = "Abyss/2.16.20.2-X2-Win32 AbyssLib/2.16.20.2"
+            response.headers["X-Powered-By"] = "PHP/8.5.5"
             return response
         except (OSError, IOError) as e:
+            app.logger.error(f"Error reading file {item_path}: {e}")
             return f"Error reading file: {str(e)}", 500
 
     result = "".join(f"{game_name}\t{size}\n" for game_name, size, _ in files) if files else "No files found\t0\n"
 
-    response = Response(result, content_type="text/html; charset=UTF-8")
+    def generate_listing():
+        yield result.encode("utf-8")
+
+    response = Response(generate_listing())
+    response.headers["Content-type"] = "text/html; charset=UTF-8"
     response.headers["Expires"] = "0"
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Server"] = "Abyss/2.16.20.2-X2-Win32 AbyssLib/2.16.20.2"
+    response.headers["X-Powered-By"] = "PHP/8.5.5"
     return response
 
 @app.route("/<path:path>")
 def catch_all(path):
+    app.logger.warning(f"404 Path not found: /{path} from {request.remote_addr} (Args: {dict(request.args)})")
     return f"404 - Path not found: /{path}\nOnly /index2.php/ is supported", 404
 
 if __name__ == "__main__":
