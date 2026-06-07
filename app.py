@@ -216,7 +216,9 @@ def directory_listing():
             with open(item_path, "rb") as f:
                 file_content = f.read()
             
-            header = f"{'size:' if request_type == 'DSK' else 'type:,start:,size:'}{len(file_content)}{',disks:1' if request_type == 'DSK' else ''},name:{game_name}.{request_type.lower()}"
+            # Use only the base filename in the header to avoid path issues on devices
+            safe_filename = os.path.basename(rel_path)
+            header = f"{'size:' if request_type == 'DSK' else 'type:,start:,size:'}{len(file_content)}{',disks:1' if request_type == 'DSK' else ''},name:{safe_filename}"
 
             def generate():
                 yield header.encode("utf-8")
