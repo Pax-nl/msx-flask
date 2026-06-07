@@ -166,6 +166,7 @@ def make_dir():
     app.logger.info(f"Directory created: {rel_path} by {request.remote_addr}")
     return render_manage(f"{get_msg('msg_mkdir_success')} /{rel_path}.")
 
+@app.route("/index2.php")
 @app.route("/index2.php/")
 def directory_listing():
     """Return directory listing based on type parameter (ROM or DSK)"""
@@ -203,7 +204,7 @@ def directory_listing():
                 yield b"\n"
                 yield file_content
 
-            response = Response(generate(), mimetype="application/octet-stream")
+            response = Response(generate(), content_type="text/html; charset=UTF-8")
             response.headers["Expires"] = "0"
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
             return response
@@ -212,7 +213,7 @@ def directory_listing():
 
     result = "".join(f"{game_name}\t{size}\n" for game_name, size, _ in files) if files else "No files found\t0\n"
 
-    response = Response(result, mimetype="text/plain")
+    response = Response(result, content_type="text/html; charset=UTF-8")
     response.headers["Expires"] = "0"
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     return response
