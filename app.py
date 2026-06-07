@@ -249,8 +249,12 @@ def directory_listing():
 
 @app.route("/<path:path>")
 def catch_all(path):
+    # Ignore index2.php requests that might end up here due to trailing slash issues
+    if path.startswith("index2.php"):
+        return directory_listing()
+
     app.logger.warning(f"404 Path not found: /{path} from {request.remote_addr} (Args: {dict(request.args)})")
-    return f"404 - Path not found: /{path}\nOnly /index2.php/ is supported", 404
+    return f"404 - Path not found: /{path}\nOnly /index2.php is supported", 404
 
 if __name__ == "__main__":
     os.makedirs(SERVE_DIRECTORY, exist_ok=True)

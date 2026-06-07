@@ -63,26 +63,29 @@ def list_file_entries(extensions, request_char="a", filter_by_name=True):
     return unique
 
 def list_directory_structured():
-    """Returns a list of dictionaries representing the file structure."""
+    """Returns a list of dictionaries representing the file structure, sorted by path."""
     items = []
     for root, dirs, files in os.walk(SERVE_DIRECTORY):
         rel_root = os.path.relpath(root, SERVE_DIRECTORY)
-        # Normalize rel_root to forward slashes
-        display_root = "/" if rel_root == "." else "/" + rel_root.replace(os.sep, "/")
+        # Normalize rel_root to forward slashes and ensure it doesn't start with /
+        if rel_root == ".":
+            display_root = "/"
+            clean_rel_root = ""
+        else:
+            clean_rel_root = rel_root.replace(os.sep, "/")
+            display_root = "/" + clean_rel_root
         
         # Add directories (except root)
-        if rel_root != ".":
+        if clean_rel_root:
             items.append({
                 "name": os.path.basename(root),
-                "path": rel_root.replace(os.sep, "/"),
+                "path": clean_rel_root,
                 "type": "dir",
-                "display_path": display_root
+                "display_path": os.path.dirname(display_root) if display_root != "/" else "/"
             })
             
         for filename in sorted(files):
-            file_rel_path = os.path.join(rel_root, filename)
-            if rel_root == ".":
-                file_rel_path = filename
+            file_rel_path = os.path.join(clean_rel_root, filename) if clean_rel_root else filename
                 
             items.append({
                 "name": filename,

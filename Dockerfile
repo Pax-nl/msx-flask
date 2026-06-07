@@ -8,29 +8,30 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# Security: add non-root user and ensure home directory exists
-RUN addgroup -S app && adduser -S app -G app -h /home/app && \
-    mkdir -p /home/app && chown -R app:app /home/app
+# Security: add non-root user
+RUN addgroup -S app && adduser -S app -G app
 
 WORKDIR /app
-ENV HOME=/home/app
+# Gunicorn needs a writable HOME for its control server/heartbeat files.
+# /tmp is always writable in Alpine.
+ENV HOME=/tmp
 ENV TMPDIR=/tmp
 
 # Requirements first for layer caching
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source and only the files needed for runtime.
+# Copy source
 COPY . ./
 
-# Create an empty files directory for runtime mounts and set ownership.
-RUN mkdir -p files && chown -R app:app files
+# Ensure the app user owns the /app directory
+RUN chown -R app:app /app
 
 USER app
 
 EXPOSE 5001
 
-# Healthcheck using standard Python library, no extra packages needed.
+# Healthcheck using standard Python library
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001', timeout=3)" || exit 1
 
