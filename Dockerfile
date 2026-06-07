@@ -8,10 +8,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# Security: add non-root user
-RUN addgroup -S app && adduser -S app -G app
+# Security: add non-root user and ensure home directory exists
+RUN addgroup -S app && adduser -S app -G app -h /home/app && \
+    mkdir -p /home/app && chown -R app:app /home/app
 
 WORKDIR /app
+ENV HOME=/home/app
+ENV TMPDIR=/tmp
 
 # Requirements first for layer caching
 COPY requirements.txt ./

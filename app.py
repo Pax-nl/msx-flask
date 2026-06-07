@@ -62,6 +62,14 @@ def inject_translate():
     lang = session.get('lang', 'nl')
     return dict(_=lambda key: TRANSLATIONS.get(lang, {}).get(key, key), current_lang=lang)
 
+# --- Logging Hooks ---
+
+@app.before_request
+def log_request():
+    """Log every single request, even if it doesn't match a route."""
+    app.logger.info(f"Incoming: {request.method} {request.url} from {request.remote_addr} (UA: {request.user_agent})")
+    app.logger.debug(f"Headers: {dict(request.headers)}")
+
 # --- Routes ---
 
 @app.route("/set_lang/<lang>")
