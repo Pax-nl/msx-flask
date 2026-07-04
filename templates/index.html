@@ -2,13 +2,13 @@
 
 {% block content %}
 <div class="mb-8 p-6 bg-black/40 border border-emerald-900/40 rounded-sm">
-    <div class="flex justify-between items-center mb-6 border-b border-emerald-900/30 pb-4">
-        <h2 class="text-xl text-emerald-300 font-bold uppercase tracking-widest">> AVAILABLE GAMES</h2>
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-emerald-900/30 pb-4">
+        <h2 class="text-xl text-emerald-300 font-bold uppercase tracking-widest text-center sm:text-left">> AVAILABLE GAMES</h2>
         
-        <div class="relative">
+        <div class="relative w-full sm:w-auto">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-emerald-700">>&nbsp;</span>
             <input type="text" id="searchInput" placeholder="Search.exe..." 
-                   class="bg-black/60 border border-emerald-800 text-emerald-300 rounded-sm py-1.5 pl-8 pr-4 w-64 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors placeholder-emerald-800" />
+                   class="bg-black/60 border border-emerald-800 text-emerald-300 rounded-sm py-1.5 pl-8 pr-4 w-full sm:w-64 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors placeholder-emerald-800" />
         </div>
     </div>
 

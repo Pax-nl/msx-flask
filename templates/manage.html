@@ -4,17 +4,17 @@
 
 {% block content %}
 <div class="mb-8 p-6 bg-black/40 border border-emerald-900/40 rounded-sm">
-    <div class="flex justify-between items-center mb-6 border-b border-emerald-900/30 pb-4">
-        <div>
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-emerald-900/30 pb-4">
+        <div class="text-center sm:text-left">
             <h2 class="text-xl text-emerald-300 font-bold uppercase tracking-widest">> {{ _('manage_title') }}</h2>
             <p class="text-emerald-700 text-sm mt-1">FILE_SYSTEM_MANAGER.EXE</p>
         </div>
         
-        <div class="flex gap-4">
-            <button id="openUpload" class="inline-flex items-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase">
+        <div class="flex gap-4 w-full sm:w-auto justify-center">
+            <button id="openUpload" class="flex-1 sm:flex-none justify-center inline-flex items-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase">
                 [+] UPLOAD
             </button>
-            <button id="openMkdir" class="inline-flex items-center px-4 py-2 bg-black/40 border border-emerald-800 text-emerald-600 hover:border-emerald-600 hover:text-emerald-400 transition-colors rounded-sm text-sm font-bold uppercase">
+            <button id="openMkdir" class="flex-1 sm:flex-none justify-center inline-flex items-center px-4 py-2 bg-black/40 border border-emerald-800 text-emerald-600 hover:border-emerald-600 hover:text-emerald-400 transition-colors rounded-sm text-sm font-bold uppercase">
                 [📁] MKDIR
             </button>
         </div>
