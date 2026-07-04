@@ -37,6 +37,10 @@ def list_file_entries(extensions, request_char="a", filter_by_name=True):
                 rel_path = os.path.relpath(file_path, SERVE_DIRECTORY).replace(os.sep, "/")
                 try:
                     size = os.path.getsize(file_path)
+                    if filename.lower().endswith('.rom'):
+                        remainder = size % 8192
+                        if remainder != 0 or size == 0:
+                            size += (8192 - remainder) if size > 0 else 8192
                 except (OSError, IOError):
                     continue
                 

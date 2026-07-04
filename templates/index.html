@@ -1,67 +1,38 @@
 {% extends "base.html" %}
 
 {% block content %}
-<span class="badge">{{ _('badge_text') }}</span>
-<h1>{{ _('home_title') }}</h1>
-<p>{{ _('home_desc') }}</p>
-<div class="button-row">
-    <a class="button" href="{{ url_for('manage') }}">{{ _('btn_manage') }}</a>
-    <button class="button test-btn" data-type="ROM">{{ _('btn_test_rom') }}</button>
-    <button class="button test-btn" data-type="DSK">{{ _('btn_test_dsk') }}</button>
+<div class="header-container">
+    <div class="logo">
+        <span class="logo-icon">📺</span>
+        <h1><span style="font-weight: 800; color: #fff;">MSX</span> <span style="font-weight: 300; font-style: italic; color: #a3c2ff;">ROM Server</span></h1>
+    </div>
+    <nav class="top-nav">
+        <a href="/" class="active">{{ _('home_title') }}</a>
+        <a href="#">Browse</a>
+        <a href="#">Top Rated</a>
+        <a href="{{ url_for('manage') }}">Upload</a>
+        <a href="#">Account</a>
+    </nav>
 </div>
-<h2>{{ _('api_endpoint') }}</h2>
-<p><code>/index2.php/</code></p>
-<h2>{{ _('parameters') }}</h2>
-<table class="api-table">
-    <thead>
-        <tr>
-            <th>Parameter</th>
-            <th>In</th>
-            <th>Type</th>
-            <th>{{ _('param_desc') }}</th>
-            <th>Default</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td><code>type</code></td>
-            <td>query</td>
-            <td>string</td>
-            <td>ROM / DSK</td>
-            <td><code>ROM</code></td>
-        </tr>
-        <tr>
-            <td><code>char</code></td>
-            <td>query</td>
-            <td>string</td>
-            <td>Filter</td>
-            <td><code>a</code></td>
-        </tr>
-        <tr>
-            <td><code>download</code></td>
-            <td>query</td>
-            <td>integer</td>
-            <td>Index</td>
-            <td>-</td>
-        </tr>
-    </tbody>
-</table>
-<h2>{{ _('examples') }}</h2>
-<pre>/index2.php/?type=ROM&char=a
-/index2.php/?type=DSK&char=a</pre>
-<h2>{{ _('response_format') }}</h2>
-<p>{{ _('response_format_desc') }}</p>
-<div class="footer">{{ _('footer_text') }}</div>
 
-<!-- Modal -->
-<div class="modal-overlay" id="resultModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title" id="modalTitle">{{ _('modal_title') }}</h3>
-            <button class="modal-close" id="closeModal">&times;</button>
+<div class="main-content">
+    <div class="toolbar">
+        <div class="view-toggles">
+            <button class="icon-btn active">⊞</button>
+            <button class="icon-btn">≡</button>
         </div>
-        <div class="modal-body" id="modalBody">
-            <!-- Results will be injected here -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search MSX games..." />
+            <button class="search-btn">🔍</button>
+        </div>
+    </div>
+
+    <div class="games-container">
+        <div class="games-header">
+            <h3>AVAILABLE GAMES</h3>
+        </div>
+        <div class="games-list" id="gamesList">
+            <div class="loading-spinner">{{ _('loading') }}</div>
         </div>
     </div>
 </div>
@@ -69,83 +40,73 @@
 
 {% block scripts %}
 <script>
-    const modal = document.getElementById('resultModal');
-    const modalBody = document.getElementById('modalBody');
-    const modalTitle = document.getElementById('modalTitle');
-    const closeBtn = document.getElementById('closeModal');
+    const gamesList = document.getElementById('gamesList');
+    const searchInput = document.getElementById('searchInput');
+
+    let allGames = [];
 
     const i18n = {
         loading: "{{ _('loading') }}",
         no_files: "{{ _('no_files') }}",
-        table_name: "{{ _('table_name') }}",
-        table_size: "{{ _('table_size') }}",
-        table_action: "{{ _('table_action') }}",
         download: "{{ _('download') }}"
     };
 
-    function showModal(title, content) {
-        modalTitle.textContent = title;
-        modalBody.innerHTML = content;
-        modal.style.display = 'flex';
+    async function loadGames() {
+        try {
+            const response = await fetch('/index2.php/?type=ROM&char=a');
+            if (!response.ok) throw new Error('Network error');
+            const text = await response.text();
+            
+            const lines = text.trim().split('\n');
+            if (lines.length === 0 || (lines.length === 1 && lines[0].startsWith('No files found'))) {
+                gamesList.innerHTML = `<p style="padding: 2rem; color: rgba(255,255,255,0.5);">${i18n.no_files}</p>`;
+                return;
+            }
+
+            allGames = lines.map((line, index) => {
+                const [name, size] = line.split('\t');
+                return { id: index, name: name, size: size }; 
+            }).filter(g => g.name);
+
+            renderGames(allGames);
+        } catch (error) {
+            gamesList.innerHTML = `<p style="color:#ff5555; padding: 2rem;">Error: ${error.message}</p>`;
+        }
     }
 
-    closeBtn.onclick = () => {
-        modal.style.display = 'none';
-    };
-
-    window.onclick = (event) => {
-        if (event.target == modal) {
-            modal.style.display = 'none';
+    function renderGames(games) {
+        if (games.length === 0) {
+            gamesList.innerHTML = `<p style="padding: 2rem; color: rgba(255,255,255,0.5);">No matching games found.</p>`;
+            return;
         }
-    };
 
-    document.querySelectorAll('.test-btn').forEach(btn => {
-        btn.onclick = async () => {
-            const type = btn.getAttribute('data-type');
-            showModal(`${type} {{ _('modal_title') }}`, `<div class="loading-spinner">${i18n.loading}</div>`);
-            
-            try {
-                const response = await fetch(`/index2.php/?type=${type}&char=a`);
-                if (!response.ok) throw new Error('Network error');
-                const text = await response.text();
-                
-                const lines = text.trim().split('\n');
-                if (lines.length === 0 || (lines.length === 1 && lines[0].startsWith('No files found'))) {
-                    modalBody.innerHTML = `<p>${i18n.no_files}</p>`;
-                    return;
-                }
+        let html = '';
+        const icons = ['🛸', '🏎️', '🧙', '🥷', '👾', '🐧', '🏰', '🚀', '🗡️', '🛡️'];
 
-                let html = `
-                    <table class="result-list">
-                        <thead>
-                            <tr>
-                                <th>${i18n.table_name}</th>
-                                <th>${i18n.table_size}</th>
-                                <th>${i18n.table_action}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
+        games.forEach((game, idx) => {
+            const icon = icons[idx % icons.length];
+            html += `
+                <div class="game-card">
+                    <div class="game-icon">${icon}</div>
+                    <div class="game-info">
+                        <h4>${idx + 1}. ${game.name}</h4>
+                        <p>Size: ${game.size} bytes &bull; Format: ROM</p>
+                    </div>
+                    <a href="/index2.php/?type=ROM&char=a&download=${game.id}" class="download-btn">
+                        <span class="icon">☁️</span> DOWNLOAD (ROM)
+                    </a>
+                </div>
+            `;
+        });
+        gamesList.innerHTML = html;
+    }
 
-                lines.forEach((line, index) => {
-                    const [name, size] = line.split('\t');
-                    if (name && size) {
-                        html += `
-                            <tr>
-                                <td>${name}</td>
-                                <td>${size}</td>
-                                <td><a href="/index2.php/?type=${type}&char=a&download=${index}" class="badge" style="text-decoration:none">${i18n.download}</a></td>
-                            </tr>
-                        `;
-                    }
-                });
-
-                html += '</tbody></table>';
-                modalBody.innerHTML = html;
-            } catch (error) {
-                modalBody.innerHTML = `<p style="color:#ff5555">Error: ${error.message}</p>`;
-            }
-        };
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const filtered = allGames.filter(g => g.name.toLowerCase().includes(query));
+        renderGames(filtered);
     });
+
+    loadGames();
 </script>
 {% endblock %}

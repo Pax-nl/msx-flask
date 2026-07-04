@@ -1,8 +1,8 @@
 TRANSLATIONS = {
     "nl": {
         "badge_text": "MSX2 RETRO SERVER",
-        "home_title": "Flask Directory Server",
-        "home_desc": "Gebruik de originele API endpoint om ROM- en DSK-bestanden te doorzoeken met een MSX-achtige look.",
+        "home_title": "MSXPico+ File Server",
+        "home_desc": "Upload en beheer bestanden die je MSXPico+ kan ophalen en openen.",
         "btn_manage": "Bestandsbeheer openen",
         "btn_test_rom": "Test .rom",
         "btn_test_dsk": "Test .dsk",
@@ -62,8 +62,8 @@ TRANSLATIONS = {
     },
     "en": {
         "badge_text": "MSX2 RETRO SERVER",
-        "home_title": "Flask Directory Server",
-        "home_desc": "Use the original API endpoint to search ROM and DSK files with an MSX-style look.",
+        "home_title": "MSXPico+ File Server",
+        "home_desc": "Upload and manage files that your MSXPico+ can retrieve and open.",
         "btn_manage": "Open File Manager",
         "btn_test_rom": "Test .rom",
         "btn_test_dsk": "Test .dsk",

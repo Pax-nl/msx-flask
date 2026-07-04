@@ -1,0 +1,139 @@
+openapi: 3.0.3
+info:
+  title: MSX-Flask API
+  description: API for the MSX-Flask server, including IP-based authentication for MSX clients and a web management interface.
+  version: 1.1.0
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+paths:
+  /index2.php:
+    get:
+      summary: Legacy MSX API for directory listing and downloading.
+      description: Returns directory listing or a file download. Authenticates the user based on their allowed IP address. Users only see their own piece of the server.
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [ROM, DSK]
+            default: ROM
+          description: Type of files to list/download.
+        - in: query
+          name: char
+          schema:
+            type: string
+            default: a
+          description: Starting character for filtering files.
+        - in: query
+          name: download
+          schema:
+            type: integer
+          description: Index of the file to download from the current listing.
+      responses:
+        '200':
+          description: A plain text directory listing or binary file download.
+        '400':
+          description: Invalid parameters.
+        '401':
+          description: Unauthorized IP address.
+        '404':
+          description: File not found.
+
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      description: Creates a new user account, allocates a dedicated server directory, and registers their initial IP address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                ip_address:
+                  type: string
+                  description: Optional initial IP. Defaults to request's IP.
+      responses:
+        '201':
+          description: User created successfully.
+
+  /api/auth/login:
+    post:
+      summary: User login for the web management portal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful, sets session cookie.
+        '401':
+          description: Invalid credentials.
+
+  /api/user/ip:
+    put:
+      summary: Update allowed IP address
+      description: Allows a logged-in user to update the IP address used for MSX client authentication.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - new_ip
+              properties:
+                new_ip:
+                  type: string
+      responses:
+        '200':
+          description: IP address updated successfully.
+        '401':
+          description: Unauthorized.
+
+  /manage/upload:
+    post:
+      summary: Upload a file to user's directory
+      security:
+        - cookieAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                target_dir:
+                  type: string
+      responses:
+        '200':
+          description: File uploaded.
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session

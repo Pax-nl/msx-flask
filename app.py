@@ -216,6 +216,12 @@ def directory_listing():
             with open(item_path, "rb") as f:
                 file_content = f.read()
             
+            if request_type == "ROM":
+                remainder = len(file_content) % 8192
+                if remainder != 0 or len(file_content) == 0:
+                    pad_size = 8192 - remainder if len(file_content) > 0 else 8192
+                    file_content += b'\0' * pad_size
+            
             # Use only the base filename in the header to avoid path issues on devices
             safe_filename = os.path.basename(rel_path)
             header = f"{'size:' if request_type == 'DSK' else 'type:,start:,size:'}{len(file_content)}{',disks:1' if request_type == 'DSK' else ''},name:{safe_filename}"

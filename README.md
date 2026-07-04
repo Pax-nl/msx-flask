@@ -1,82 +1,30 @@
-# MSX Flask Directory Server
+# MSX ROM Server (MSX-Flask)
 
-Een kleine Flask-applicatie die een directorylisting serveert vanuit de `files/` map. Deze repository is bedoeld om de inhoud van een MSX-bestandenmap via HTTP beschikbaar te maken, met focus op ROM- en DSK-bestanden.
+MSX ROM Server is a lightweight, modern web application designed to serve retro MSX game ROMs (such as Moon Patrol) directly to your MSX Pico or other compatible flash cartridges.
 
-## Inhoud
+![MSX ROM Server Interface](msx_flask_ui.jpg)
 
-- `flask_directory_server.py` - Flask-applicatie die `files/` indexeert en lijstresultaten retourneert.
-- `Dockerfile` - Docker image voor productie, met `gunicorn` als WSGI-server.
-- `docker-compose.yml` - Lokale ontwikkelomgeving met gemounte `files/` map.
-- `requirements.txt` - Python dependencies.
-- `.dockerignore` - Bouwcontext uitsluiten voor grote bestanden en gevoelige gegevens.
-- `.gitignore` - Git negeert grote assets en lokale configuratie.
-- `flask_directory_server.py` - bevat nu een beheerdersinterface op `/manage` voor upload, delete, hernoemen, verplaatsen en mappen aanmaken.
+## Features
 
-## Vereisten
+- **Automated ROM Padding:** MSX Pico hardware requires `.rom` files to be at least `0x2000` (8192 bytes) in size. This server automatically pads smaller ROM files (e.g., converted `.com` files) with null bytes on-the-fly during download, without permanently altering the original files on the server!
+- **Sleek Web Interface:** Enjoy a clean, responsive, and retro-themed web interface for browsing and downloading your favorite games.
+- **Direct MSX Integration:** Download files directly to your MSX Pico via WiFi without ever needing to touch an SD card.
 
-- Docker
-- Docker Compose (of `docker compose` ondersteund door je Docker-versie)
+## Usage
 
-## Lokale ontwikkeling
+1. Upload your MSX ROM files (both `.rom` and `.com` files are supported) to the `files/` directory.
+2. If uploading a `.com` file for use with MSX Pico, simply rename it to `.rom` before uploading.
+3. Access the web interface on your local network to browse your collection.
+4. The server automatically ensures all `.rom` files meet the 8KB minimum size requirement for MSX Pico compatibility during the download process.
 
-1. Bouw en start de service:
+## Deployment
 
+The application is deployed securely via SSH using the provided `scripts/manage_webapp.py` script.
+
+To deploy to production:
 ```bash
-docker compose up --build
+python scripts/manage_webapp.py deploy prd
 ```
 
-2. Open de service in je browser of een client:
-
-```text
-http://localhost
-```
-
-3. Stop de service met:
-
-```bash
-docker compose down
-```
-
-## Docker build en run
-
-Bouw de image:
-
-```bash
-docker build -t msx-flask .
-```
-
-Start de container met een gekoppelde `files/` map en maak de service bereikbaar op hostpoort 80:
-
-```bash
-docker run -p 80:5001 -v $(pwd)/files:/app/files:ro --env-file .env msx-flask
-```
-
-> Gebruik `:ro` als je de bestanden alleen wil lezen vanuit de container.
-
-## Environment variables
-
-De app luistert altijd intern op port `5001`; die interne poort is niet configureerbaar.
-
-Je kunt `.env` gebruiken om de externe hostpoort te configureren voor Docker Compose of een proxy zoals nginx.
-
-Voorbeeldbestand:
-
-```env
-HOST_PORT=80
-DEBUG=0
-FLASK_ENV=production
-```
-
-- `HOST_PORT=80` bepaalt welke hostpoort naar containerpoort `5001` wordt geleid.
-- `DEBUG=1` kan worden gebruikt voor extra logging tijdens lokale testen.
-- `FLASK_ENV=production` is de aanbevolen waarde voor productie.
-
-## Bestanden en assets
-
-- Voeg geen grote `*.dsk` of `*.DSK` bestanden aan Git toe.
-- De `files/` map is gemarkeerd in `.dockerignore` zodat deze niet onnodig in de Docker buildcontext komt.
-
-## Opmerkingen
-
-- Deze setup gebruikt `gunicorn` als productie-server in plaats van de Flask debug-server.
-- De `files/` map wordt idealiter via een volume gemount, zodat de container licht blijft.
+### Infrastructure Note
+This project utilizes a built-in virtual environment deployment structure `python3 -m venv`. Earlier Ansible iterations relying on the standalone `virtualenv` module caused executable permission loss on Alpine Linux, which has now been fully resolved.

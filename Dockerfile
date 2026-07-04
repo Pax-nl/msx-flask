@@ -1,4 +1,4 @@
-# Lightweight Alpine-based image for the MSX Flask Directory Server
+# Lightweight Alpine-based image for the MSX MSXPico+ File Server
 # Use a small runtime base and keep build context minimal.
 
 FROM python:3.12-alpine

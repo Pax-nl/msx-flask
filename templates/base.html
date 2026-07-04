@@ -2,31 +2,10 @@
 <html lang="{{ current_lang }}">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ _('home_title') }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        .lang-switcher {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            display: flex;
-            gap: 0.5rem;
-            z-index: 100;
-        }
-        .lang-link {
-            color: var(--msx-green);
-            text-decoration: none;
-            font-size: 0.8rem;
-            padding: 0.2rem 0.5rem;
-            border: 1px solid var(--msx-border-green);
-            background: rgba(16, 32, 12, 0.8);
-        }
-        .lang-link.active {
-            background: var(--msx-dark-green);
-            font-weight: bold;
-            border-color: var(--msx-bright-green);
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap" rel="stylesheet">
     {% block head %}{% endblock %}
 </head>
 <body>
