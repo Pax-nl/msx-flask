@@ -3,127 +3,153 @@
 {% block title %}{{ _('manage_title') }}{% endblock %}
 
 {% block content %}
-<h1>{{ _('manage_title') }}</h1>
-<p>{{ _('manage_desc') }}</p>
+<div class="mb-8 p-6 bg-black/40 border border-emerald-900/40 rounded-sm">
+    <div class="flex justify-between items-center mb-6 border-b border-emerald-900/30 pb-4">
+        <div>
+            <h2 class="text-xl text-emerald-300 font-bold uppercase tracking-widest">> {{ _('manage_title') }}</h2>
+            <p class="text-emerald-700 text-sm mt-1">FILE_SYSTEM_MANAGER.EXE</p>
+        </div>
+        
+        <div class="flex gap-4">
+            <button id="openUpload" class="inline-flex items-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase">
+                [+] UPLOAD
+            </button>
+            <button id="openMkdir" class="inline-flex items-center px-4 py-2 bg-black/40 border border-emerald-800 text-emerald-600 hover:border-emerald-600 hover:text-emerald-400 transition-colors rounded-sm text-sm font-bold uppercase">
+                [📁] MKDIR
+            </button>
+        </div>
+    </div>
 
-<div class="button-row">
-    <a class="button" href="{{ url_for('index') }}">{{ _('btn_home') }}</a>
-    <button class="button" id="openUpload">{{ _('upload_title') }}</button>
-    <button class="button secondary" id="openMkdir">{{ _('mkdir_title') }}</button>
+    {% if message %}
+    <div class="mb-6 p-4 bg-emerald-900/20 border-l-4 border-emerald-500 text-emerald-200 text-sm font-mono animate-pulse">
+        > {{ message }}
+    </div>
+    {% endif %}
+
+    <div class="overflow-x-auto border border-emerald-900/30 rounded-sm bg-black/20">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-emerald-950/40 border-b border-emerald-900/50">
+                    <th class="p-4 text-emerald-700 font-bold text-xs uppercase tracking-wider">{{ _('table_name') }}</th>
+                    <th class="p-4 text-emerald-700 font-bold text-xs uppercase tracking-wider w-32">{{ _('table_action') }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-emerald-900/20">
+                {% set current_folder = [None] %}
+                {% for item in items %}
+                    {% if item.display_path != current_folder[0] %}
+                        <tr class="bg-emerald-900/10 border-b-2 border-emerald-900/40">
+                            <td colspan="2" class="p-3 text-emerald-500 font-bold text-sm tracking-wide">
+                                📁 {{ item.display_path }}
+                            </td>
+                        </tr>
+                        {% if current_folder.append(item.display_path) %}{% endif %}
+                    {% endif %}
+                    <tr class="hover:bg-emerald-900/20 transition-colors group">
+                        <td class="p-4 pl-8 flex items-center text-emerald-100 text-sm">
+                            <span class="mr-3 text-emerald-700 group-hover:text-emerald-400 transition-colors">
+                                {% if item.type == 'dir' %}📁{% else %}📄{% endif %}
+                            </span>
+                            {{ item.name }}
+                        </td>
+                        <td class="p-4">
+                            <div class="flex gap-2">
+                                <button class="rename-trigger text-emerald-600 hover:text-emerald-300 p-1 rounded transition-colors" 
+                                        data-path="{{ item.path }}" title="{{ _('rename_title') }}">📝</button>
+                                <button class="delete-trigger text-red-900 hover:text-red-400 p-1 rounded transition-colors" 
+                                        data-path="{{ item.path }}" title="{{ _('delete_title') }}">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
-{% if message %}
-<p class="message">{{ message }}</p>
-{% endif %}
-
-<table class="manage-table">
-    <thead>
-        <tr>
-            <th>{{ _('table_name') }}</th>
-            <th style="width: 100px;">{{ _('table_action') }}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% set current_folder = [None] %}
-        {% for item in items %}
-            {% if item.display_path != current_folder[0] %}
-                <tr class="folder-group-row">
-                    <td colspan="2">
-                        <span style="color: var(--msx-bright-green); font-weight: bold;">📁 {{ item.display_path }}</span>
-                    </td>
-                </tr>
-                {% if current_folder.append(item.display_path) %}{% endif %}
-            {% endif %}
-            <tr>
-                <td style="padding-left: 2rem;">
-                    <span class="type-icon">{% if item.type == 'dir' %}📁{% else %}📄{% endif %}</span>
-                    {{ item.name }}
-                </td>
-                <td>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="icon-btn rename-trigger" 
-                                data-path="{{ item.path }}" 
-                                title="{{ _('rename_title') }}">📝</button>
-                        <button class="icon-btn delete delete-trigger" 
-                                data-path="{{ item.path }}" 
-                                title="{{ _('delete_title') }}">🗑️</button>
-                    </div>
-                </td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<div class="footer">{{ _('api_ready_footer') }}</div>
+<!-- Modal Shared Classes -->
+{% set modal_overlay = "fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] items-center justify-center p-4 hidden" %}
+{% set modal_content = "bg-[#050505] border border-emerald-700 shadow-[0_0_40px_rgba(16,185,129,0.15)] w-full max-w-md relative overflow-hidden" %}
+{% set modal_header = "p-4 border-b border-emerald-900/40 bg-emerald-950/20 flex justify-between items-center" %}
+{% set modal_title = "text-emerald-400 font-bold tracking-wider" %}
+{% set input_class = "w-full bg-black/60 border border-emerald-800 text-emerald-100 p-2.5 rounded-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 mb-4 text-sm" %}
+{% set label_class = "block text-emerald-700 text-xs font-bold mb-2 uppercase tracking-wide" %}
+{% set submit_btn = "w-full py-3 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm font-bold uppercase tracking-widest mt-2" %}
 
 <!-- Upload Modal -->
-<div class="modal-overlay" id="uploadModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">{{ _('upload_title') }}</h3>
-            <button class="modal-close closeModal">&times;</button>
+<div class="{{ modal_overlay }}" id="uploadModal" style="display: none;">
+    <div class="{{ modal_content }}">
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+        <div class="{{ modal_header }} relative z-10">
+            <h3 class="{{ modal_title }}">> {{ _('upload_title') }}</h3>
+            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="p-6 relative z-10">
             <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
-                <label>{{ _('label_file') }}</label>
-                <input type="file" name="file" required>
-                <label>{{ _('label_target_dir') }}</label>
-                <input type="text" name="target_dir" placeholder="{{ _('placeholder_dir') }}">
-                <button type="submit">{{ _('btn_upload') }}</button>
+                <label class="{{ label_class }}">{{ _('label_file') }}</label>
+                <input type="file" name="file" required class="block w-full text-sm text-emerald-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-emerald-900/40 file:text-emerald-300 hover:file:bg-emerald-700 mb-4 bg-black/60 border border-emerald-800 p-2">
+                
+                <label class="{{ label_class }}">{{ _('label_target_dir') }}</label>
+                <input type="text" name="target_dir" placeholder="{{ _('placeholder_dir') }}" class="{{ input_class }}">
+                
+                <button type="submit" class="{{ submit_btn }}">{{ _('btn_upload') }}</button>
             </form>
         </div>
     </div>
 </div>
 
 <!-- Mkdir Modal -->
-<div class="modal-overlay" id="mkdirModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">{{ _('mkdir_title') }}</h3>
-            <button class="modal-close closeModal">&times;</button>
+<div class="{{ modal_overlay }}" id="mkdirModal" style="display: none;">
+    <div class="{{ modal_content }}">
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+        <div class="{{ modal_header }} relative z-10">
+            <h3 class="{{ modal_title }}">> {{ _('mkdir_title') }}</h3>
+            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="p-6 relative z-10">
             <form action="{{ url_for('make_dir') }}" method="post">
-                <label>{{ _('label_dir_path') }}</label>
-                <input type="text" name="dir_path" placeholder="{{ _('placeholder_dir') }}" required>
-                <button type="submit">{{ _('btn_mkdir') }}</button>
+                <label class="{{ label_class }}">{{ _('label_dir_path') }}</label>
+                <input type="text" name="dir_path" placeholder="{{ _('placeholder_dir') }}" required class="{{ input_class }}">
+                <button type="submit" class="{{ submit_btn }}">{{ _('btn_mkdir') }}</button>
             </form>
         </div>
     </div>
 </div>
 
 <!-- Rename Modal -->
-<div class="modal-overlay" id="renameModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">{{ _('rename_title') }}</h3>
-            <button class="modal-close closeModal">&times;</button>
+<div class="{{ modal_overlay }}" id="renameModal" style="display: none;">
+    <div class="{{ modal_content }}">
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+        <div class="{{ modal_header }} relative z-10">
+            <h3 class="{{ modal_title }}">> {{ _('rename_title') }}</h3>
+            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="p-6 relative z-10">
             <form action="{{ url_for('rename_item') }}" method="post">
-                <label>{{ _('label_old_path') }}</label>
-                <input type="text" name="old_path" id="renameOldPath" readonly>
-                <label>{{ _('label_new_path') }}</label>
-                <input type="text" name="new_path" placeholder="{{ _('placeholder_file') }}" required autofocus>
-                <button type="submit">{{ _('btn_rename') }}</button>
+                <label class="{{ label_class }}">{{ _('label_old_path') }}</label>
+                <input type="text" name="old_path" id="renameOldPath" readonly class="{{ input_class }} opacity-70">
+                <label class="{{ label_class }}">{{ _('label_new_path') }}</label>
+                <input type="text" name="new_path" placeholder="{{ _('placeholder_file') }}" required autofocus class="{{ input_class }}">
+                <button type="submit" class="{{ submit_btn }}">{{ _('btn_rename') }}</button>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Delete Modal (Confirmation) -->
-<div class="modal-overlay" id="deleteModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">{{ _('delete_title') }}</h3>
-            <button class="modal-close closeModal">&times;</button>
+<!-- Delete Modal -->
+<div class="{{ modal_overlay }}" id="deleteModal" style="display: none;">
+    <div class="{{ modal_content }} border-red-900/50">
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+        <div class="p-4 border-b border-red-900/30 bg-red-950/20 flex justify-between items-center relative z-10">
+            <h3 class="text-red-500 font-bold tracking-wider">> WARNING: DELETE</h3>
+            <button class="closeModal text-red-600 hover:text-red-400 font-bold">&times;</button>
         </div>
-        <div class="modal-body">
-            <p id="deleteConfirmText"></p>
-            <form action="{{ url_for('delete_item') }}" method="post">
+        <div class="p-6 relative z-10">
+            <p id="deleteConfirmText" class="text-red-400 text-sm mb-6 font-mono"></p>
+            <form action="{{ url_for('delete_item') }}" method="post" class="flex gap-4">
                 <input type="hidden" name="path" id="deletePath">
-                <button type="submit" class="button" style="background:#822; border-color:#f55;">{{ _('btn_delete') }}</button>
-                <button type="button" class="button secondary closeModal">{{ _('btn_home') }} (Cancel)</button>
+                <button type="submit" class="flex-1 py-3 bg-red-900/40 border border-red-700 text-red-300 hover:bg-red-700 hover:text-red-50 transition-colors rounded-sm font-bold uppercase tracking-widest">CONFIRM</button>
+                <button type="button" class="closeModal flex-1 py-3 bg-black/40 border border-emerald-800 text-emerald-600 hover:border-emerald-600 hover:text-emerald-400 transition-colors rounded-sm font-bold uppercase tracking-widest">ABORT</button>
             </form>
         </div>
     </div>
@@ -138,15 +164,24 @@
         const closeBtns = modal.querySelectorAll('.closeModal');
 
         if (trigger) {
-            trigger.onclick = () => modal.style.display = 'flex';
+            trigger.onclick = () => {
+                modal.style.display = 'flex';
+                modal.classList.remove('hidden');
+            };
         }
 
         closeBtns.forEach(btn => {
-            btn.onclick = () => modal.style.display = 'none';
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                modal.classList.add('hidden');
+            };
         });
 
         window.addEventListener('click', (event) => {
-            if (event.target == modal) modal.style.display = 'none';
+            if (event.target == modal) {
+                modal.style.display = 'none';
+                modal.classList.add('hidden');
+            }
         });
     }
 
@@ -160,6 +195,7 @@
             const path = btn.getAttribute('data-path');
             document.getElementById('renameOldPath').value = path;
             renameModal.style.display = 'flex';
+            renameModal.classList.remove('hidden');
         };
     });
     setupModal('renameModal', null);
@@ -172,6 +208,7 @@
             document.getElementById('deletePath').value = path;
             document.getElementById('deleteConfirmText').textContent = `{{ _('msg_deleted') }} ${path}?`;
             deleteModal.style.display = 'flex';
+            deleteModal.classList.remove('hidden');
         };
     });
     setupModal('deleteModal', null);

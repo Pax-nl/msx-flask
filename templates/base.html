@@ -1,21 +1,66 @@
 <!DOCTYPE html>
-<html lang="{{ current_lang }}">
+<html lang="{{ current_lang }}" class="dark overflow-x-hidden">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>{% block title %}{{ _('home_title') }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --font-mono: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        @layer base {
+            body {
+                background-color: #050505;
+                color: #d1fae5;
+                font-family: var(--font-mono);
+            }
+        }
+        @layer utilities {
+            .crt-overlay {
+                background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+                background-size: 100% 4px;
+                z-index: 50;
+                pointer-events: none;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     {% block head %}{% endblock %}
 </head>
-<body>
-    <div class="lang-switcher">
-        <a href="{{ url_for('set_lang', lang='nl') }}" class="lang-link {% if current_lang == 'nl' %}active{% endif %}">NL</a>
-        <a href="{{ url_for('set_lang', lang='en') }}" class="lang-link {% if current_lang == 'en' %}active{% endif %}">EN</a>
+<body class="bg-[#050505] text-emerald-100 font-mono antialiased min-h-screen flex flex-col relative overflow-x-hidden">
+    
+    <!-- CRT Scanline Overlay -->
+    <div class="fixed inset-0 z-50 pointer-events-none crt-overlay"></div>
+
+    <div class="relative z-10 flex flex-col min-h-screen max-w-[1024px] mx-auto w-full px-4 sm:px-6 lg:px-8">
+        
+        <!-- Navbar -->
+        <header class="py-6 border-b border-emerald-900/30 mb-8 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">📺</span>
+                <h1 class="text-2xl font-bold tracking-wider text-emerald-50">MSX <span class="font-normal text-emerald-400">ROM Server</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="{{ url_for('set_lang', lang='nl') }}" class="text-xs px-2 py-1 border border-emerald-800/50 rounded {{ 'bg-emerald-900/50 text-emerald-300' if current_lang == 'nl' else 'text-emerald-600 hover:text-emerald-400' }}">NL</a>
+                <a href="{{ url_for('set_lang', lang='en') }}" class="text-xs px-2 py-1 border border-emerald-800/50 rounded {{ 'bg-emerald-900/50 text-emerald-300' if current_lang == 'en' else 'text-emerald-600 hover:text-emerald-400' }}">EN</a>
+                
+                <a href="{{ url_for('index') }}" class="text-emerald-400 hover:text-emerald-200 ml-4">Home</a>
+                <a href="{{ url_for('manage') }}" class="text-emerald-600 hover:text-emerald-400">Manage</a>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow">
+            {% block content %}{% endblock %}
+        </main>
+        
+        <!-- Footer -->
+        <footer class="py-6 mt-8 border-t border-emerald-900/30 text-center text-xs text-emerald-800">
+            &copy; 2026 MSX ROM Server
+        </footer>
     </div>
-    <div class="page">
-        {% block content %}{% endblock %}
-    </div>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>
