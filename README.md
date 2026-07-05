@@ -6,8 +6,9 @@ MSX ROM Server is a lightweight, modern web application designed to serve retro 
 
 ## Features
 
+- **Retro Cyberpunk Design:** A fully responsive, mobile-friendly interface built with Tailwind CSS. Features a dark mode aesthetic, emerald green terminal text, and a CSS-based CRT scanline overlay for that authentic 80s/90s hacker feel.
 - **Automated ROM Padding:** MSX Pico hardware requires `.rom` files to be at least `0x2000` (8192 bytes) in size. This server automatically pads smaller ROM files (e.g., converted `.com` files) with null bytes on-the-fly during download, without permanently altering the original files on the server!
-- **Sleek Web Interface:** Enjoy a clean, responsive, and retro-themed web interface for browsing and downloading your favorite games.
+- **Sleek Web Interface:** Enjoy a clean, responsive, and retro-themed web interface for browsing, managing (uploading/renaming/deleting), and downloading your favorite games.
 - **Direct MSX Integration:** Download files directly to your MSX Pico via WiFi without ever needing to touch an SD card.
 
 ## Usage
