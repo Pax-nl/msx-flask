@@ -193,7 +193,7 @@ def directory_listing():
     download_index = request.args.get("download", None)
 
     if request_type == "ROM":
-        extensions = [".rom", ".ROM"]
+        extensions = [".rom", ".ROM", ".com", ".COM"]
     elif request_type == "DSK":
         extensions = [".dsk", ".DSK"]
     else:
@@ -217,13 +217,16 @@ def directory_listing():
                 file_content = f.read()
             
             if request_type == "ROM":
-                remainder = len(file_content) % 8192
+                remainder = len(file_content) % 4096
                 if remainder != 0 or len(file_content) == 0:
-                    pad_size = 8192 - remainder if len(file_content) > 0 else 8192
+                    pad_size = 4096 - remainder if len(file_content) > 0 else 4096
                     file_content += b'\0' * pad_size
             
             # Use only the base filename in the header to avoid path issues on devices
             safe_filename = os.path.basename(rel_path)
+            if request_type == "ROM" and safe_filename.lower().endswith(".com"):
+                safe_filename = safe_filename[:-4] + ".rom"
+                
             header = f"{'size:' if request_type == 'DSK' else 'type:,start:,size:'}{len(file_content)}{',disks:1' if request_type == 'DSK' else ''},name:{safe_filename}"
 
             def generate():
