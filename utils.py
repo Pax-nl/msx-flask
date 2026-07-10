@@ -107,5 +107,5 @@ def list_directory_structured():
                 "display_path": display_path
             })
 
-    # Sort by display_path to group them, then by type (dirs first), then name
-    return sorted(items, key=lambda x: (x["display_path"], x["type"] == "file", x["name"]))
+    # Sort by directory path (combining dirs with their contents), then by type (dirs first), then name
+    return sorted(items, key=lambda x: (("/" + x["path"]) if x["type"] == "dir" else x["display_path"], x["type"] == "file", x["name"]))
