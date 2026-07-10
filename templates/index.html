@@ -81,15 +81,12 @@
         }
 
         let html = '';
-        const icons = ['[+]', '[*]', '[#]', '[~]'];
 
         games.forEach((game, idx) => {
-            const icon = icons[idx % icons.length];
             const ext = game.path.split('.').pop().toUpperCase();
             html += `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-emerald-950/10 border border-emerald-900/20 hover:bg-emerald-900/20 hover:border-emerald-700/50 transition-all rounded-sm group">
                     <div class="flex items-center mb-4 sm:mb-0">
-                        <div class="text-emerald-700 font-bold mr-4 font-mono group-hover:text-emerald-400 transition-colors">${icon}</div>
                         <div>
                             <h4 class="text-emerald-100 font-bold text-lg">${(idx + 1).toString().padStart(2, '0')}. ${game.name}</h4>
                             <p class="text-emerald-600/80 text-xs mt-1">SIZE: ${game.size} BYTES | FMT: ${ext}</p>
