@@ -53,6 +53,26 @@
         download: "{{ _('download') }}"
     };
 
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        // Convert SQLite UTC string to local Date object
+        const isoStr = dateStr.replace(' ', 'T') + 'Z';
+        const date = new Date(isoStr);
+        if (isNaN(date.getTime())) return dateStr;
+        
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMins < 1) return 'JUST NOW';
+        if (diffMins < 60) return `${diffMins}M AGO`;
+        
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours}H AGO`;
+        
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).toUpperCase();
+    }
+
     async function loadGames() {
         try {
             const response = await fetch('/index2.php/?type=ROM&char=a&web=1');
@@ -65,7 +85,24 @@
             }
 
             allGames = data.map((game, index) => {
-                return { id: index, name: game.name, size: game.size, path: game.path }; 
+                return { 
+                    id: index, 
+                    name: game.name, 
+                    size: game.size, 
+                    path: game.path,
+                    downloads: game.downloads || 0,
+                    last_downloaded: game.last_downloaded || null
+                }; 
+            });
+
+            // Sort by: last downloaded (most recent first), then alphabetically
+            allGames.sort((a, b) => {
+                if (a.last_downloaded && !b.last_downloaded) return -1;
+                if (!a.last_downloaded && b.last_downloaded) return 1;
+                if (a.last_downloaded && b.last_downloaded) {
+                    return new Date(b.last_downloaded.replace(' ', 'T') + 'Z') - new Date(a.last_downloaded.replace(' ', 'T') + 'Z');
+                }
+                return a.name.localeCompare(b.name);
             });
 
             renderGames(allGames);
@@ -84,12 +121,23 @@
 
         games.forEach((game, idx) => {
             const ext = game.path.split('.').pop().toUpperCase();
+            
+            let statsText = `SIZE: ${game.size} BYTES | FMT: ${ext}`;
+            if (game.downloads > 0) {
+                statsText += ` | DOWNLOADS: ${game.downloads}`;
+                if (game.last_downloaded) {
+                    statsText += ` | LAST: ${formatDate(game.last_downloaded)}`;
+                }
+            } else {
+                statsText += ` | DOWNLOADS: 0`;
+            }
+
             html += `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-emerald-950/10 border border-emerald-900/20 hover:bg-emerald-900/20 hover:border-emerald-700/50 transition-all rounded-sm group">
                     <div class="flex items-center mb-4 sm:mb-0">
                         <div>
                             <h4 class="text-emerald-100 font-bold text-lg">${(idx + 1).toString().padStart(2, '0')}. ${game.name}</h4>
-                            <p class="text-emerald-600/80 text-xs mt-1">SIZE: ${game.size} BYTES | FMT: ${ext}</p>
+                            <p class="text-emerald-600/80 text-xs mt-1 font-mono">${statsText}</p>
                         </div>
                     </div>
                     <div class="flex gap-2">

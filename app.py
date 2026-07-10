@@ -17,6 +17,8 @@ from utils import (
     safe_path,
     list_file_entries,
     list_directory_structured,
+    get_download_stats,
+    record_download,
 )
 from translations import TRANSLATIONS
 
@@ -262,6 +264,12 @@ def directory_listing():
             with open(item_path, "rb") as f:
                 file_content = f.read()
             
+            # Record download statistics
+            try:
+                record_download(rel_path, request.remote_addr)
+            except Exception as ex:
+                app.logger.error(f"Failed to record download stats: {ex}")
+            
             if request_type == "ROM":
                 remainder = len(file_content) % 4096
                 if remainder != 0 or len(file_content) == 0:
@@ -292,7 +300,17 @@ def directory_listing():
             return f"Error reading file: {str(e)}", 500
 
     if request.args.get("web") == "1" or request.args.get("format") == "json":
-        json_data = [{"name": game_name, "size": size, "path": rel_path} for game_name, size, rel_path in files]
+        stats = get_download_stats()
+        json_data = []
+        for game_name, size, rel_path in files:
+            file_stats = stats.get(rel_path, {"count": 0, "last_downloaded_at": None})
+            json_data.append({
+                "name": game_name,
+                "size": size,
+                "path": rel_path,
+                "downloads": file_stats["count"],
+                "last_downloaded": file_stats["last_downloaded_at"]
+            })
         response = Response(json.dumps(json_data), mimetype="application/json")
         response.headers["Expires"] = "0"
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"

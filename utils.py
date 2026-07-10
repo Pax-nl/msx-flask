@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import sqlite3
 import html
 from werkzeug.utils import secure_filename
 
@@ -111,3 +112,46 @@ def list_directory_structured():
 
     # Sort by directory path (combining dirs with their contents), then by type (dirs first), then name
     return sorted(items, key=lambda x: (("/" + x["path"]) if x["type"] == "dir" else x["display_path"], x["type"] == "file", x["name"]))
+
+# --- Download Statistics Database ---
+
+STATS_DB = os.path.join(BASE_DIRECTORY, "logs", "stats.db")
+
+def init_stats_db():
+    os.makedirs(os.path.dirname(STATS_DB), exist_ok=True)
+    conn = sqlite3.connect(STATS_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS downloads (
+            path TEXT PRIMARY KEY,
+            download_count INTEGER DEFAULT 0,
+            last_downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_ip TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def record_download(rel_path, ip_address):
+    init_stats_db()
+    conn = sqlite3.connect(STATS_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO downloads (path, download_count, last_downloaded_at, last_ip)
+        VALUES (?, 1, CURRENT_TIMESTAMP, ?)
+        ON CONFLICT(path) DO UPDATE SET
+            download_count = download_count + 1,
+            last_downloaded_at = CURRENT_TIMESTAMP,
+            last_ip = EXCLUDED.last_ip
+    """, (rel_path, ip_address))
+    conn.commit()
+    conn.close()
+
+def get_download_stats():
+    init_stats_db()
+    conn = sqlite3.connect(STATS_DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT path, download_count, last_downloaded_at FROM downloads")
+    rows = cursor.fetchall()
+    conn.close()
+    return {row[0]: {"count": row[1], "last_downloaded_at": row[2]} for row in rows}
