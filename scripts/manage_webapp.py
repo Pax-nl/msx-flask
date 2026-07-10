@@ -76,19 +76,29 @@ def deploy(env):
     conf = SERVERS[env]
     print(f"\n🚀 === Deploying {APP_NAME} to {env.upper()} ({conf['host']}) === 🚀")
 
-    print_step(f"Updating Remote Server ({conf['host']})")
-    if not ssh_command(conf, f"git checkout {conf['branch']} && git pull", quiet=True):
-        print_error("Failed to update git on remote server")
-        sys.exit(1)
-    print_success("Git pulled successfully")
+    # Activate maintenance mode
+    print_step("Activating Maintenance Mode...")
+    ssh_command(conf, "touch maintenance.flag", quiet=True)
 
-    print_step("Updating Dependencies (Remote)")
-    if not ssh_command(conf, f"{VENV_NAME}/bin/python -m pip install -r requirements.txt", quiet=True):
-        print_error("pip install had issues")
-    else:
-        print_success("Dependencies updated")
+    try:
+        print_step(f"Updating Remote Server ({conf['host']})")
+        if not ssh_command(conf, f"git checkout {conf['branch']} && git pull", quiet=True):
+            print_error("Failed to update git on remote server")
+            sys.exit(1)
+        print_success("Git pulled successfully")
 
-    restart_server(env)
+        print_step("Updating Dependencies (Remote)")
+        if not ssh_command(conf, f"{VENV_NAME}/bin/python -m pip install -r requirements.txt", quiet=True):
+            print_error("pip install had issues")
+        else:
+            print_success("Dependencies updated")
+
+        restart_server(env)
+    finally:
+        # Deactivate maintenance mode
+        print_step("Deactivating Maintenance Mode...")
+        ssh_command(conf, "rm -f maintenance.flag", quiet=True)
+
     print(f"\n✨ Deployment to {env.upper()} Complete! ✨\n")
 
 def local_start():
