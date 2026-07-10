@@ -2,6 +2,17 @@
 
 {% block title %}{{ _('manage_title') }}{% endblock %}
 
+{% block head %}
+<style>
+    tr.folder-header-row, tr.folder-header-row * {
+        user-select: none !important;
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="mb-8 p-6 bg-black/40 border border-emerald-900/40 rounded-sm">
     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-emerald-900/30 pb-4">
