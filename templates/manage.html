@@ -81,7 +81,7 @@
                     {% if item.type == 'file' %}
                     <tr class="file-row hover:bg-emerald-900/20 transition-colors group cursor-pointer select-none" 
                         data-folder="{{ item.display_path }}"
-                        onclick="selectFile(this, '{{ item.display_path }}')">
+                        onclick="showFileInfo('{{ item.name }}', '{{ item.display_path }}', {{ item.size }}, '{{ item.path }}')">
                         <td class="p-4 pl-8 flex items-center text-emerald-100 text-sm">
                             <span class="mr-3 text-emerald-700 group-hover:text-emerald-400 transition-colors">
                                 📄
@@ -199,6 +199,41 @@
         </div>
     </div>
 </div>
+
+<!-- File Info Modal -->
+<div class="{{ modal_overlay }}" id="fileInfoModal" style="display: none;">
+    <div class="{{ modal_content }}">
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+        <div class="{{ modal_header }} relative z-10">
+            <h3 class="{{ modal_title }}">> FILE INFO</h3>
+            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold">&times;</button>
+        </div>
+        <div class="p-6 relative z-10">
+            <div class="space-y-4 mb-6 font-mono text-sm">
+                <div>
+                    <span class="text-emerald-700 font-bold block text-xs uppercase">FILENAME</span>
+                    <span class="text-emerald-100 break-all" id="infoFileName"></span>
+                </div>
+                <div>
+                    <span class="text-emerald-700 font-bold block text-xs uppercase">DIRECTORY</span>
+                    <span class="text-emerald-100" id="infoFileDir"></span>
+                </div>
+                <div>
+                    <span class="text-emerald-700 font-bold block text-xs uppercase">SIZE</span>
+                    <span class="text-emerald-100" id="infoFileSize"></span>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button type="button" id="infoRenameBtn" class="flex-1 py-2.5 bg-emerald-950/40 border border-emerald-800 text-emerald-400 hover:bg-emerald-800 hover:text-emerald-50 transition-colors rounded-sm font-bold uppercase text-sm cursor-pointer">
+                    Rename
+                </button>
+                <button type="button" id="infoDeleteBtn" class="flex-1 py-2.5 bg-red-950/40 border border-red-900 text-red-400 hover:bg-red-900 hover:text-red-50 transition-colors rounded-sm font-bold uppercase text-sm cursor-pointer">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -313,8 +348,18 @@
         };
     }
 
-    // Select File & set its parent folder as target dir
-    window.selectFile = function(fileRow, displayPath) {
+    setupModal('fileInfoModal', null);
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i] + ' (' + bytes + ' bytes)';
+    }
+
+    // Show file info modal & highlight parent folder
+    window.showFileInfo = function(name, displayPath, size, path) {
         const relPath = displayPath.startsWith('/') ? displayPath.substring(1) : displayPath;
         window.activeFolder = relPath;
         
@@ -323,12 +368,6 @@
             row.classList.remove('bg-emerald-900/30');
             row.classList.add('bg-emerald-900/10');
         });
-        document.querySelectorAll('tr.file-row').forEach(row => {
-            row.classList.remove('bg-emerald-900/20');
-        });
-        
-        // Highlight selected file row
-        fileRow.classList.add('bg-emerald-900/20');
         
         // Highlight parent folder header row
         const parentHeader = Array.from(document.querySelectorAll('tr.folder-header-row')).find(row => {
@@ -338,6 +377,32 @@
             parentHeader.classList.remove('bg-emerald-900/10');
             parentHeader.classList.add('bg-emerald-900/30');
         }
+
+        // Populate info modal
+        document.getElementById('infoFileName').textContent = name;
+        document.getElementById('infoFileDir').textContent = displayPath;
+        document.getElementById('infoFileSize').textContent = formatBytes(size);
+
+        // Bind buttons
+        document.getElementById('infoRenameBtn').onclick = () => {
+            document.getElementById('fileInfoModal').style.display = 'none';
+            document.getElementById('renameOldPath').value = path;
+            document.getElementById('renameModal').style.display = 'flex';
+            document.getElementById('renameModal').classList.remove('hidden');
+        };
+
+        document.getElementById('infoDeleteBtn').onclick = () => {
+            document.getElementById('fileInfoModal').style.display = 'none';
+            document.getElementById('deletePath').value = path;
+            document.getElementById('deleteConfirmText').textContent = `{{ _('msg_deleted') }} ${path}?`;
+            document.getElementById('deleteModal').style.display = 'flex';
+            document.getElementById('deleteModal').classList.remove('hidden');
+        };
+
+        // Open modal
+        const infoModal = document.getElementById('fileInfoModal');
+        infoModal.style.display = 'flex';
+        infoModal.classList.remove('hidden');
     };
 </script>
 {% endblock %}

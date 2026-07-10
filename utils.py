@@ -78,7 +78,8 @@ def list_directory_structured():
                 "name": entry.name,
                 "path": entry.name,
                 "type": "file",
-                "display_path": "/"
+                "display_path": "/",
+                "size": entry.stat().st_size
             })
 
     # Now walk subdirectories
@@ -104,7 +105,8 @@ def list_directory_structured():
                 "name": filename,
                 "path": clean_rel_root + "/" + filename,
                 "type": "file",
-                "display_path": display_path
+                "display_path": display_path,
+                "size": os.path.getsize(os.path.join(root, filename))
             })
 
     # Sort by directory path (combining dirs with their contents), then by type (dirs first), then name
