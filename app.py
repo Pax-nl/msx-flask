@@ -5,6 +5,7 @@ Flask webserver that returns plain text directory listing from files/ directory
 
 import os
 import sys
+import json
 import shutil
 import logging
 from logging.handlers import RotatingFileHandler
@@ -137,6 +138,32 @@ def delete_item():
     app.logger.info(f"Item deleted: {rel_path} by {request.remote_addr}")
     return render_manage(f"{get_msg('msg_deleted')} /{rel_path}.")
 
+@app.route("/api/delete", methods=["POST"])
+def api_delete_file():
+    target = request.json.get("path", "") if request.is_json else request.form.get("path", "")
+    if not target:
+        return {"success": False, "error": get_msg("msg_provide_path")}, 400
+    
+    try:
+        target_path = safe_path(target)
+    except ValueError:
+        return {"success": False, "error": get_msg("msg_invalid_path")}, 400
+    
+    if not os.path.exists(target_path):
+        return {"success": False, "error": get_msg("msg_not_found")}, 404
+    
+    if os.path.abspath(target_path) == os.path.abspath(SERVE_DIRECTORY):
+        return {"success": False, "error": get_msg("msg_root_delete_denied")}, 403
+    
+    if os.path.isdir(target_path):
+        shutil.rmtree(target_path)
+    else:
+        os.remove(target_path)
+        
+    rel_path = os.path.relpath(target_path, SERVE_DIRECTORY).replace('\\', '/')
+    app.logger.info(f"Item deleted via API: {rel_path} by {request.remote_addr}")
+    return {"success": True, "message": f"{get_msg('msg_deleted')} /{rel_path}."}
+
 @app.route("/manage/rename", methods=["POST"])
 def rename_item():
     old_path = request.form.get("old_path", "")
@@ -244,6 +271,13 @@ def directory_listing():
         except (OSError, IOError) as e:
             app.logger.error(f"Error reading file {item_path}: {e}")
             return f"Error reading file: {str(e)}", 500
+
+    if request.args.get("web") == "1" or request.args.get("format") == "json":
+        json_data = [{"name": game_name, "size": size, "path": rel_path} for game_name, size, rel_path in files]
+        response = Response(json.dumps(json_data), mimetype="application/json")
+        response.headers["Expires"] = "0"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        return response
 
     result = "".join(f"{game_name}\t{size}\n" for game_name, size, _ in files) if files else "No files found\t0\n"
 

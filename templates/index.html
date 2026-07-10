@@ -3,11 +3,11 @@
 {% block content %}
 <div class="mb-8 p-6 bg-black/40 border border-emerald-900/40 rounded-sm">
     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-emerald-900/30 pb-4">
-        <h2 class="text-xl text-emerald-300 font-bold uppercase tracking-widest text-center sm:text-left">> AVAILABLE GAMES</h2>
+        <h2 class="text-xl text-emerald-300 font-bold uppercase tracking-widest text-center sm:text-left">> AVAILABLE FILES</h2>
         
         <div class="relative w-full sm:w-auto">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-emerald-700">>&nbsp;</span>
-            <input type="text" id="searchInput" placeholder="Search.exe..." 
+            <input type="text" id="searchInput" placeholder="Search..." 
                    class="bg-black/60 border border-emerald-800 text-emerald-300 rounded-sm py-1.5 pl-8 pr-4 w-full sm:w-64 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors placeholder-emerald-800" />
         </div>
     </div>
@@ -15,6 +15,28 @@
     <div id="gamesList" class="space-y-3">
         <div class="text-center py-10 text-emerald-600 animate-pulse">
             LOADING.COM...
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+{% set modal_overlay = "fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] items-center justify-center p-4 hidden" %}
+{% set modal_content = "bg-[#050505] border border-emerald-700 shadow-[0_0_40px_rgba(16,185,129,0.15)] w-full max-w-md relative overflow-hidden" %}
+
+<div class="{{ modal_overlay }}" id="deleteModal" style="display: none;">
+    <div class="{{ modal_content }} border-red-900/50">
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+        <div class="p-4 border-b border-red-900/30 bg-red-950/20 flex justify-between items-center relative z-10">
+            <h3 class="text-red-500 font-bold tracking-wider">> WARNING: DELETE</h3>
+            <button class="closeModal text-red-600 hover:text-red-400 font-bold cursor-pointer text-xl">&times;</button>
+        </div>
+        <div class="p-6 relative z-10">
+            <p id="deleteConfirmText" class="text-red-400 text-sm mb-6 font-mono"></p>
+            <div class="flex gap-4">
+                <input type="hidden" id="deletePath">
+                <button id="confirmDeleteBtn" class="flex-1 py-3 bg-red-900/40 border border-red-700 text-red-300 hover:bg-red-700 hover:text-red-50 transition-colors rounded-sm font-bold uppercase tracking-widest cursor-pointer">CONFIRM</button>
+                <button type="button" class="closeModal flex-1 py-3 bg-black/40 border border-emerald-800 text-emerald-600 hover:border-emerald-600 hover:text-emerald-400 transition-colors rounded-sm font-bold uppercase tracking-widest cursor-pointer">ABORT</button>
+            </div>
         </div>
     </div>
 </div>
@@ -33,20 +55,18 @@
 
     async function loadGames() {
         try {
-            const response = await fetch('/index2.php/?type=ROM&char=a');
+            const response = await fetch('/index2.php/?type=ROM&char=a&web=1');
             if (!response.ok) throw new Error('Network error');
-            const text = await response.text();
+            const data = await response.json();
             
-            const lines = text.trim().split('\n');
-            if (lines.length === 0 || (lines.length === 1 && lines[0].startsWith('No files found'))) {
+            if (data.length === 0) {
                 gamesList.innerHTML = `<div class="text-emerald-700 py-8 text-center border border-emerald-900/30 bg-black/20">[ ERROR: ${i18n.no_files} ]</div>`;
                 return;
             }
 
-            allGames = lines.map((line, index) => {
-                const [name, size] = line.split('\t');
-                return { id: index, name: name, size: size }; 
-            }).filter(g => g.name);
+            allGames = data.map((game, index) => {
+                return { id: index, name: game.name, size: game.size, path: game.path }; 
+            });
 
             renderGames(allGames);
         } catch (error) {
@@ -65,25 +85,85 @@
 
         games.forEach((game, idx) => {
             const icon = icons[idx % icons.length];
+            const ext = game.path.split('.').pop().toUpperCase();
             html += `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-emerald-950/10 border border-emerald-900/20 hover:bg-emerald-900/20 hover:border-emerald-700/50 transition-all rounded-sm group">
                     <div class="flex items-center mb-4 sm:mb-0">
                         <div class="text-emerald-700 font-bold mr-4 font-mono group-hover:text-emerald-400 transition-colors">${icon}</div>
                         <div>
                             <h4 class="text-emerald-100 font-bold text-lg">${(idx + 1).toString().padStart(2, '0')}. ${game.name}</h4>
-                            <p class="text-emerald-600/80 text-xs mt-1">SIZE: ${game.size} BYTES | FMT: ROM</p>
+                            <p class="text-emerald-600/80 text-xs mt-1">SIZE: ${game.size} BYTES | FMT: ${ext}</p>
                         </div>
                     </div>
-                    <a href="/index2.php/?type=ROM&char=a&download=${game.id}" 
-                       class="inline-flex items-center justify-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase tracking-wider">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        DOWNLOAD
-                    </a>
+                    <div class="flex gap-2">
+                        <a href="/index2.php/?type=ROM&char=a&download=${game.id}" 
+                           class="inline-flex items-center justify-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase tracking-wider">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            DOWNLOAD
+                        </a>
+                        <button onclick="confirmDelete('${encodeURIComponent(game.path)}', '${encodeURIComponent(game.name)}')" 
+                                class="inline-flex items-center justify-center px-4 py-2 bg-red-950/40 border border-red-900 text-red-400 hover:bg-red-900 hover:text-red-50 transition-colors rounded-sm text-sm font-bold uppercase tracking-wider cursor-pointer"
+                                title="DELETE">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            DELETE
+                        </button>
+                    </div>
                 </div>
             `;
         });
         gamesList.innerHTML = html;
     }
+
+    const deleteModal = document.getElementById('deleteModal');
+    const deletePathInput = document.getElementById('deletePath');
+    const deleteConfirmText = document.getElementById('deleteConfirmText');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+    window.confirmDelete = function(encodedPath, name) {
+        const path = decodeURIComponent(encodedPath);
+        const fileName = decodeURIComponent(name);
+        deletePathInput.value = path;
+        deleteConfirmText.textContent = `{{ _('msg_deleted') }} ${path}?`;
+        deleteModal.style.display = 'flex';
+        deleteModal.classList.remove('hidden');
+    };
+
+    deleteModal.querySelectorAll('.closeModal').forEach(btn => {
+        btn.onclick = () => {
+            deleteModal.style.display = 'none';
+            deleteModal.classList.add('hidden');
+        };
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == deleteModal) {
+            deleteModal.style.display = 'none';
+            deleteModal.classList.add('hidden');
+        }
+    });
+
+    confirmDeleteBtn.onclick = async () => {
+        const path = deletePathInput.value;
+        try {
+            const response = await fetch('/api/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ path: path })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                deleteModal.style.display = 'none';
+                deleteModal.classList.add('hidden');
+                loadGames();
+            } else {
+                alert(`Error: ${result.error || 'Failed to delete file'}`);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    };
 
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
