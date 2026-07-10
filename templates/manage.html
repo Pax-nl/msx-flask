@@ -4,7 +4,7 @@
 
 {% block head %}
 <style>
-    tr.folder-header-row, tr.folder-header-row * {
+    tr.folder-header-row, tr.folder-header-row *, tr.file-row, tr.file-row * {
         user-select: none !important;
         -webkit-user-select: none !important;
         -moz-user-select: none !important;
@@ -79,14 +79,16 @@
                     {% endif %}
                     
                     {% if item.type == 'file' %}
-                    <tr class="hover:bg-emerald-900/20 transition-colors group" data-folder="{{ item.display_path }}">
+                    <tr class="file-row hover:bg-emerald-900/20 transition-colors group cursor-pointer select-none" 
+                        data-folder="{{ item.display_path }}"
+                        onclick="selectFile(this, '{{ item.display_path }}')">
                         <td class="p-4 pl-8 flex items-center text-emerald-100 text-sm">
                             <span class="mr-3 text-emerald-700 group-hover:text-emerald-400 transition-colors">
                                 📄
                             </span>
                             {{ item.name }}
                         </td>
-                        <td class="p-4">
+                        <td class="p-4" onclick="event.stopPropagation();">
                             <div class="flex gap-2">
                                 <button class="rename-trigger inline-flex items-center justify-center px-3 py-2 bg-emerald-950/40 border border-emerald-800 text-emerald-400 hover:bg-emerald-800 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase cursor-pointer" 
                                         data-path="{{ item.path }}" title="{{ _('rename_title') }}">
@@ -310,5 +312,32 @@
             }
         };
     }
+
+    // Select File & set its parent folder as target dir
+    window.selectFile = function(fileRow, displayPath) {
+        const relPath = displayPath.startsWith('/') ? displayPath.substring(1) : displayPath;
+        window.activeFolder = relPath;
+        
+        // Reset all highlights
+        document.querySelectorAll('tr.folder-header-row').forEach(row => {
+            row.classList.remove('bg-emerald-900/30');
+            row.classList.add('bg-emerald-900/10');
+        });
+        document.querySelectorAll('tr.file-row').forEach(row => {
+            row.classList.remove('bg-emerald-900/20');
+        });
+        
+        // Highlight selected file row
+        fileRow.classList.add('bg-emerald-900/20');
+        
+        // Highlight parent folder header row
+        const parentHeader = Array.from(document.querySelectorAll('tr.folder-header-row')).find(row => {
+            return row.getAttribute('onclick').includes(`'${displayPath}'`) || row.getAttribute('onclick').includes(`"${displayPath}"`);
+        });
+        if (parentHeader) {
+            parentHeader.classList.remove('bg-emerald-900/10');
+            parentHeader.classList.add('bg-emerald-900/30');
+        }
+    };
 </script>
 {% endblock %}
