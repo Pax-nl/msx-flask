@@ -250,7 +250,6 @@
         const selector = `tr[data-folder="${folderPath}"]`;
         const rows = document.querySelectorAll(selector);
         
-        let isCollapse = false;
         if (rows.length > 0) {
             const isHidden = rows[0].style.display === 'none';
             rows.forEach(row => {
@@ -260,26 +259,19 @@
             if (toggleIcon) {
                 toggleIcon.textContent = isHidden ? '▼' : '▶';
             }
-            isCollapse = !isHidden;
-        } else {
-            const relPath = folderPath.startsWith('/') ? folderPath.substring(1) : folderPath;
-            isCollapse = (window.activeFolder === relPath);
         }
 
-        // Reset all folder header styles
+        // Active folder highlight & tracking (always select on click)
+        const relPath = folderPath.startsWith('/') ? folderPath.substring(1) : folderPath;
+        window.activeFolder = relPath;
+        
+        // Update background highlights (no border modifications!)
         document.querySelectorAll('tr.folder-header-row').forEach(row => {
-            row.classList.remove('bg-emerald-900/30', 'border-emerald-500');
-            row.classList.add('bg-emerald-900/10', 'border-emerald-900/40');
+            row.classList.remove('bg-emerald-900/30');
+            row.classList.add('bg-emerald-900/10');
         });
-
-        if (isCollapse) {
-            window.activeFolder = "";
-        } else {
-            const relPath = folderPath.startsWith('/') ? folderPath.substring(1) : folderPath;
-            window.activeFolder = relPath;
-            headerRow.classList.add('bg-emerald-900/30', 'border-emerald-500');
-            headerRow.classList.remove('bg-emerald-900/10', 'border-emerald-900/40');
-        }
+        headerRow.classList.remove('bg-emerald-900/10');
+        headerRow.classList.add('bg-emerald-900/30');
     };
 
     // Pre-select active folder on Upload click
