@@ -127,7 +127,7 @@
         <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
         <div class="{{ modal_header }} relative z-10">
             <h3 class="{{ modal_title }}">> {{ _('upload_title') }}</h3>
-            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold">&times;</button>
+            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold text-sm tracking-wide cursor-pointer">[X]</button>
         </div>
         <div class="p-6 relative z-10">
             <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
@@ -149,7 +149,7 @@
         <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
         <div class="{{ modal_header }} relative z-10">
             <h3 class="{{ modal_title }}">> {{ _('mkdir_title') }}</h3>
-            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold">&times;</button>
+            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold text-sm tracking-wide cursor-pointer">[X]</button>
         </div>
         <div class="p-6 relative z-10">
             <form action="{{ url_for('make_dir') }}" method="post">
@@ -167,7 +167,7 @@
         <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
         <div class="{{ modal_header }} relative z-10">
             <h3 class="{{ modal_title }}">> {{ _('rename_title') }}</h3>
-            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold">&times;</button>
+            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold text-sm tracking-wide cursor-pointer">[X]</button>
         </div>
         <div class="p-6 relative z-10">
             <form action="{{ url_for('rename_item') }}" method="post">
@@ -187,7 +187,7 @@
         <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
         <div class="p-4 border-b border-red-900/30 bg-red-950/20 flex justify-between items-center relative z-10">
             <h3 class="text-red-500 font-bold tracking-wider">> WARNING: DELETE</h3>
-            <button class="closeModal text-red-600 hover:text-red-400 font-bold">&times;</button>
+            <button class="closeModal text-red-600 hover:text-red-400 font-bold text-sm tracking-wide cursor-pointer">[X]</button>
         </div>
         <div class="p-6 relative z-10">
             <p id="deleteConfirmText" class="text-red-400 text-sm mb-6 font-mono"></p>
@@ -206,7 +206,7 @@
         <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
         <div class="{{ modal_header }} relative z-10">
             <h3 class="{{ modal_title }}">> FILE INFO</h3>
-            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold">&times;</button>
+            <button class="closeModal text-emerald-600 hover:text-red-500 font-bold text-sm tracking-wide cursor-pointer">[X]</button>
         </div>
         <div class="p-6 relative z-10">
             <div class="space-y-4 mb-6 font-mono text-sm">
