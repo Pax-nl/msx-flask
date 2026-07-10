@@ -40,7 +40,7 @@
                 {% for item in items %}
                     {% set folder_path = ("/" + item.path) if item.type == 'dir' else item.display_path %}
                     {% if folder_path not in rendered_folders %}
-                        <tr class="bg-emerald-900/10 border-b-2 border-emerald-900/40 cursor-pointer hover:bg-emerald-900/20 transition-all select-none"
+                        <tr class="folder-header-row bg-emerald-900/10 border-b-2 border-emerald-900/40 cursor-pointer hover:bg-emerald-900/20 transition-all select-none"
                             onclick="toggleFolder(this, '{{ folder_path }}')">
                             <td class="p-3 text-emerald-500 font-bold text-sm tracking-wide">
                                 <span class="folder-toggle-icon mr-2 text-xs">▼</span>📁 {{ folder_path }}
@@ -122,7 +122,12 @@
                 <input type="file" name="file" required class="block w-full text-sm text-emerald-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-emerald-900/40 file:text-emerald-300 hover:file:bg-emerald-700 mb-4 bg-black/60 border border-emerald-800 p-2">
                 
                 <label class="{{ label_class }}">{{ _('label_target_dir') }}</label>
-                <input type="text" name="target_dir" placeholder="{{ _('placeholder_dir') }}" class="{{ input_class }}">
+                <select name="target_dir" id="uploadTargetDir" class="{{ input_class }} cursor-pointer">
+                    <option value="">/</option>
+                    {% for item in items if item.type == 'dir' %}
+                        <option value="{{ item.path }}">/{{ item.path }}</option>
+                    {% endfor %}
+                </select>
                 
                 <button type="submit" class="{{ submit_btn }}">{{ _('btn_upload') }}</button>
             </form>
@@ -261,6 +266,30 @@
         if (toggleIcon) {
             toggleIcon.textContent = isHidden ? '▼' : '▶';
         }
+
+        // Active folder highlight & tracking
+        const relPath = folderPath.startsWith('/') ? folderPath.substring(1) : folderPath;
+        window.activeFolder = relPath;
+        
+        document.querySelectorAll('tr.folder-header-row').forEach(row => {
+            row.classList.remove('bg-emerald-900/30', 'border-emerald-500');
+            row.classList.add('bg-emerald-900/10', 'border-emerald-900/40');
+        });
+        headerRow.classList.add('bg-emerald-900/30', 'border-emerald-500');
+        headerRow.classList.remove('bg-emerald-900/10', 'border-emerald-900/40');
     };
+
+    // Pre-select active folder on Upload click
+    const openUploadBtn = document.getElementById('openUpload');
+    if (openUploadBtn) {
+        const originalClick = openUploadBtn.onclick;
+        openUploadBtn.onclick = () => {
+            if (originalClick) originalClick();
+            const targetSelect = document.getElementById('uploadTargetDir');
+            if (targetSelect && window.activeFolder !== undefined) {
+                targetSelect.value = window.activeFolder;
+            }
+        };
+    }
 </script>
 {% endblock %}
