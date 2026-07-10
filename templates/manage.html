@@ -37,7 +37,7 @@
             <tbody class="divide-y divide-emerald-900/20">
                 {% set current_folder = [None] %}
                 {% for item in items %}
-                    {% if item.display_path != current_folder[0] %}
+                    {% if item.display_path != current_folder[-1] %}
                         <tr class="bg-emerald-900/10 border-b-2 border-emerald-900/40">
                             <td colspan="2" class="p-3 text-emerald-500 font-bold text-sm tracking-wide">
                                 📁 {{ item.display_path }}
