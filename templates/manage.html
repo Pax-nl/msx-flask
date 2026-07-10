@@ -122,12 +122,7 @@
                 <input type="file" name="file" required class="block w-full text-sm text-emerald-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-emerald-900/40 file:text-emerald-300 hover:file:bg-emerald-700 mb-4 bg-black/60 border border-emerald-800 p-2">
                 
                 <label class="{{ label_class }}">{{ _('label_target_dir') }}</label>
-                <select name="target_dir" id="uploadTargetDir" class="{{ input_class }} cursor-pointer">
-                    <option value="">/</option>
-                    {% for item in items if item.type == 'dir' %}
-                        <option value="{{ item.path }}">/{{ item.path }}</option>
-                    {% endfor %}
-                </select>
+                <input type="text" name="target_dir" id="uploadTargetDir" placeholder="{{ _('placeholder_dir') }}" class="{{ input_class }}">
                 
                 <button type="submit" class="{{ submit_btn }}">{{ _('btn_upload') }}</button>
             </form>
@@ -146,7 +141,7 @@
         <div class="p-6 relative z-10">
             <form action="{{ url_for('make_dir') }}" method="post">
                 <label class="{{ label_class }}">{{ _('label_dir_path') }}</label>
-                <input type="text" name="dir_path" placeholder="{{ _('placeholder_dir') }}" required class="{{ input_class }}">
+                <input type="text" name="dir_path" id="mkdirDirPath" placeholder="{{ _('placeholder_dir') }}" required class="{{ input_class }}">
                 <button type="submit" class="{{ submit_btn }}">{{ _('btn_mkdir') }}</button>
             </form>
         </div>
@@ -285,9 +280,22 @@
         const originalClick = openUploadBtn.onclick;
         openUploadBtn.onclick = () => {
             if (originalClick) originalClick();
-            const targetSelect = document.getElementById('uploadTargetDir');
-            if (targetSelect && window.activeFolder !== undefined) {
-                targetSelect.value = window.activeFolder;
+            const targetInput = document.getElementById('uploadTargetDir');
+            if (targetInput && window.activeFolder !== undefined) {
+                targetInput.value = window.activeFolder;
+            }
+        };
+    }
+
+    // Pre-fill active folder on Mkdir click
+    const openMkdirBtn = document.getElementById('openMkdir');
+    if (openMkdirBtn) {
+        const originalClick = openMkdirBtn.onclick;
+        openMkdirBtn.onclick = () => {
+            if (originalClick) originalClick();
+            const dirPathInput = document.getElementById('mkdirDirPath');
+            if (dirPathInput) {
+                dirPathInput.value = window.activeFolder ? window.activeFolder + '/' : '';
             }
         };
     }
