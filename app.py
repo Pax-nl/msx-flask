@@ -85,23 +85,27 @@ def index():
 
 @app.route("/manage")
 def manage():
-    return render_manage()
+    message = session.pop('manage_message', None)
+    return render_manage(message)
 
 @app.route("/manage/upload", methods=["POST"])
 def upload_file():
     upload = request.files.get("file")
     if not upload or upload.filename == "":
-        return render_manage(get_msg("msg_select_file"))
+        session['manage_message'] = get_msg("msg_select_file")
+        return redirect(url_for('manage'))
     
     filename = secure_filename(upload.filename)
     if not filename:
-        return render_manage(get_msg("msg_invalid_filename"))
+        session['manage_message'] = get_msg("msg_invalid_filename")
+        return redirect(url_for('manage'))
     
     target_dir = request.form.get("target_dir", "")
     try:
         dest_dir = safe_path(target_dir)
     except ValueError:
-        return render_manage(get_msg("msg_invalid_path"))
+        session['manage_message'] = get_msg("msg_invalid_path")
+        return redirect(url_for('manage'))
     
     os.makedirs(dest_dir, exist_ok=True)
     destination = os.path.join(dest_dir, filename)
@@ -110,24 +114,29 @@ def upload_file():
     
     rel_path = os.path.relpath(destination, SERVE_DIRECTORY).replace('\\', '/')
     app.logger.info(f"File uploaded: {rel_path} from {request.remote_addr}")
-    return render_manage(f"{get_msg('msg_upload_success')} /{rel_path}.")
+    session['manage_message'] = f"{get_msg('msg_upload_success')} /{rel_path}."
+    return redirect(url_for('manage'))
 
 @app.route("/manage/delete", methods=["POST"])
 def delete_item():
     target = request.form.get("path", "")
     if not target:
-        return render_manage(get_msg("msg_provide_path"))
+        session['manage_message'] = get_msg("msg_provide_path")
+        return redirect(url_for('manage'))
     
     try:
         target_path = safe_path(target)
     except ValueError:
-        return render_manage(get_msg("msg_invalid_path"))
+        session['manage_message'] = get_msg("msg_invalid_path")
+        return redirect(url_for('manage'))
     
     if not os.path.exists(target_path):
-        return render_manage(get_msg("msg_not_found"))
+        session['manage_message'] = get_msg("msg_not_found")
+        return redirect(url_for('manage'))
     
     if os.path.abspath(target_path) == os.path.abspath(SERVE_DIRECTORY):
-        return render_manage(get_msg("msg_root_delete_denied"))
+        session['manage_message'] = get_msg("msg_root_delete_denied")
+        return redirect(url_for('manage'))
     
     if os.path.isdir(target_path):
         shutil.rmtree(target_path)
@@ -136,7 +145,8 @@ def delete_item():
     
     rel_path = os.path.relpath(target_path, SERVE_DIRECTORY).replace('\\', '/')
     app.logger.info(f"Item deleted: {rel_path} by {request.remote_addr}")
-    return render_manage(f"{get_msg('msg_deleted')} /{rel_path}.")
+    session['manage_message'] = f"{get_msg('msg_deleted')} /{rel_path}."
+    return redirect(url_for('manage'))
 
 @app.route("/api/delete", methods=["POST"])
 def api_delete_file():
@@ -169,19 +179,23 @@ def rename_item():
     old_path = request.form.get("old_path", "")
     new_path = request.form.get("new_path", "")
     if not old_path or not new_path:
-        return render_manage(get_msg("msg_provide_both_paths"))
+        session['manage_message'] = get_msg("msg_provide_both_paths")
+        return redirect(url_for('manage'))
     
     try:
         source_path = safe_path(old_path)
         destination_path = safe_path(new_path)
     except ValueError:
-        return render_manage(get_msg("msg_invalid_path"))
+        session['manage_message'] = get_msg("msg_invalid_path")
+        return redirect(url_for('manage'))
     
     if not os.path.exists(source_path):
-        return render_manage(get_msg("msg_source_not_found"))
+        session['manage_message'] = get_msg("msg_source_not_found")
+        return redirect(url_for('manage'))
     
     if os.path.exists(destination_path):
-        return render_manage(get_msg("msg_dest_exists"))
+        session['manage_message'] = get_msg("msg_dest_exists")
+        return redirect(url_for('manage'))
     
     os.makedirs(os.path.dirname(destination_path), exist_ok=True)
     os.rename(source_path, destination_path)
@@ -189,26 +203,31 @@ def rename_item():
     rel_old = os.path.relpath(source_path, SERVE_DIRECTORY).replace('\\', '/')
     rel_new = os.path.relpath(destination_path, SERVE_DIRECTORY).replace('\\', '/')
     app.logger.info(f"Item renamed: {rel_old} to {rel_new} by {request.remote_addr}")
-    return render_manage(f"{get_msg('msg_moved')} /{rel_old} {get_msg('msg_to')} /{rel_new}.")
+    session['manage_message'] = f"{get_msg('msg_moved')} /{rel_old} {get_msg('msg_to')} /{rel_new}."
+    return redirect(url_for('manage'))
 
 @app.route("/manage/mkdir", methods=["POST"])
 def make_dir():
     dir_path = request.form.get("dir_path", "")
     if not dir_path:
-        return render_manage(get_msg("msg_provide_dirname"))
+        session['manage_message'] = get_msg("msg_provide_dirname")
+        return redirect(url_for('manage'))
     
     try:
         destination = safe_path(dir_path)
     except ValueError:
-        return render_manage(get_msg("msg_invalid_path"))
+        session['manage_message'] = get_msg("msg_invalid_path")
+        return redirect(url_for('manage'))
     
     if os.path.isfile(destination):
-        return render_manage(get_msg("msg_file_exists"))
+        session['manage_message'] = get_msg("msg_file_exists")
+        return redirect(url_for('manage'))
     
     os.makedirs(destination, exist_ok=True)
     rel_path = os.path.relpath(destination, SERVE_DIRECTORY).replace('\\', '/')
     app.logger.info(f"Directory created: {rel_path} by {request.remote_addr}")
-    return render_manage(f"{get_msg('msg_mkdir_success')} /{rel_path}.")
+    session['manage_message'] = f"{get_msg('msg_mkdir_success')} /{rel_path}."
+    return redirect(url_for('manage'))
 
 @app.route("/index2.php")
 @app.route("/index2.php/")
