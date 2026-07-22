@@ -111,25 +111,112 @@ paths:
         '401':
           description: Unauthorized.
 
-  /manage/upload:
+  /api/files:
+    get:
+      summary: Get structured directory listing
+      responses:
+        '200':
+          description: Structured JSON array of files and directories.
+
+  /api/upload:
     post:
-      summary: Upload a file to user's directory
-      security:
-        - cookieAuth: []
+      summary: Upload a file via API
       requestBody:
+        required: true
         content:
           multipart/form-data:
             schema:
               type: object
+              required:
+                - file
               properties:
                 file:
                   type: string
                   format: binary
                 target_dir:
                   type: string
+                  description: Subdirectory relative to serve directory.
+      responses:
+        '201':
+          description: File uploaded successfully.
+        '400':
+          description: Invalid request or parameters.
+
+  /api/download:
+    get:
+      summary: Download a file by path query parameter
+      parameters:
+        - in: query
+          name: path
+          required: true
+          schema:
+            type: string
+          description: Relative path of the file to download.
       responses:
         '200':
-          description: File uploaded.
+          description: Binary file stream.
+        '400':
+          description: Invalid path.
+        '404':
+          description: File not found.
+
+  /api/download/{filepath}:
+    get:
+      summary: Download a file by URL path
+      parameters:
+        - in: path
+          name: filepath
+          required: true
+          schema:
+            type: string
+          description: Relative path of the file to download.
+      responses:
+        '200':
+          description: Binary file stream.
+        '400':
+          description: Invalid path.
+        '404':
+          description: File not found.
+
+  /api/delete:
+    post:
+      summary: Delete a file or directory via POST
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - path
+              properties:
+                path:
+                  type: string
+      responses:
+        '200':
+          description: Item deleted.
+        '400':
+          description: Invalid path.
+        '403':
+          description: Cannot delete root directory.
+        '404':
+          description: Item not found.
+    delete:
+      summary: Delete a file or directory via DELETE
+      parameters:
+        - in: query
+          name: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item deleted.
+        '400':
+          description: Invalid path.
+        '403':
+          description: Cannot delete root directory.
+        '404':
+          description: Item not found.
 
 components:
   securitySchemes:
