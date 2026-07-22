@@ -214,8 +214,8 @@
                 return b.downloads - a.downloads;
             });
 
-        renderCardList(recentUploadsList, uploads, i18n.no_recent_uploads);
-        renderCardList(recentDownloadsList, downloads, i18n.no_recent_downloads);
+        renderCardList(recentUploadsList, uploads.slice(0, 5), i18n.no_recent_uploads);
+        renderCardList(recentDownloadsList, downloads.slice(0, 5), i18n.no_recent_downloads);
     }
 
     const deleteModal = document.getElementById('deleteModal');
