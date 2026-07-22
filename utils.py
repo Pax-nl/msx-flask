@@ -38,6 +38,7 @@ def list_file_entries(extensions, request_char="a", filter_by_name=True):
                 rel_path = os.path.relpath(file_path, SERVE_DIRECTORY).replace(os.sep, "/")
                 try:
                     size = os.path.getsize(file_path)
+                    mtime = os.path.getmtime(file_path)
                     if filename.lower().endswith('.rom'):
                         remainder = size % 8192
                         if remainder != 0 or size == 0:
@@ -60,13 +61,14 @@ def list_file_entries(extensions, request_char="a", filter_by_name=True):
                         else:
                             if search_term_lower not in display_name_lower:
                                 continue
-                entries.append((display_name, size, rel_path))
+                entries.append((display_name, size, rel_path, mtime))
     unique = []
     seen = set()
     for entry in sorted(entries, key=lambda item: (item[0], item[2])):
-        if entry not in seen:
+        key = (entry[0], entry[1], entry[2])
+        if key not in seen:
             unique.append(entry)
-            seen.add(entry)
+            seen.add(key)
     return unique
 
 def list_directory_structured():

@@ -8,6 +8,7 @@ import sys
 import json
 import shutil
 import logging
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from flask import Flask, request, Response, render_template, redirect, url_for, session, send_file
 from werkzeug.utils import secure_filename
@@ -318,7 +319,7 @@ def make_dir():
 @app.route("/index2.php")
 @app.route("/index2.php/")
 def directory_listing():
-    """Return directory listing based on type parameter (ROM or DSK)"""
+    """Return directory listing based on type parameter (ROM, DSK, or ALL)"""
     app.logger.info(f"API Request: {request.url} from {request.remote_addr} (UA: {request.user_agent})")
     request_type = request.args.get("type", "ROM").upper()
     request_char = request.args.get("char", "a")
@@ -328,9 +329,11 @@ def directory_listing():
         extensions = [".rom", ".ROM", ".com", ".COM"]
     elif request_type == "DSK":
         extensions = [".dsk", ".DSK"]
+    elif request_type == "ALL":
+        extensions = [".rom", ".ROM", ".com", ".COM", ".dsk", ".DSK"]
     else:
         app.logger.warning(f"Unsupported type: {request_type}")
-        return f"Error: Unsupported type '{request_type}'. Use ROM or DSK.", 400
+        return f"Error: Unsupported type '{request_type}'. Use ROM, DSK, or ALL.", 400
 
     files = list_file_entries(extensions, request_char=request_char)
 
@@ -341,7 +344,7 @@ def directory_listing():
         if not 0 <= download_idx < len(files):
             return f"Error: Invalid download index {download_idx}.", 400
 
-        game_name, size, rel_path = files[download_idx]
+        game_name, size, rel_path, mtime = files[download_idx]
         item_path = safe_path(rel_path)
         app.logger.info(f"Downloading file: {rel_path} for {request.remote_addr}")
         try:
@@ -386,21 +389,23 @@ def directory_listing():
     if request.args.get("web") == "1" or request.args.get("format") == "json":
         stats = get_download_stats()
         json_data = []
-        for game_name, size, rel_path in files:
+        for game_name, size, rel_path, mtime in files:
             file_stats = stats.get(rel_path, {"count": 0, "last_downloaded_at": None})
+            uploaded_at_str = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
             json_data.append({
                 "name": game_name,
                 "size": size,
                 "path": rel_path,
                 "downloads": file_stats["count"],
-                "last_downloaded": file_stats["last_downloaded_at"]
+                "last_downloaded": file_stats["last_downloaded_at"],
+                "uploaded_at": uploaded_at_str
             })
         response = Response(json.dumps(json_data), mimetype="application/json")
         response.headers["Expires"] = "0"
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
         return response
 
-    result = "".join(f"{game_name}\t{size}\n" for game_name, size, _ in files) if files else "No files found\t0\n"
+    result = "".join(f"{game_name}\t{size}\n" for game_name, size, _, _ in files) if files else "No files found\t0\n"
 
     def generate_listing():
         yield result.encode("utf-8")

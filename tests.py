@@ -2,6 +2,9 @@ import io
 import json
 import unittest
 import os
+import logging
+logging.disable(logging.CRITICAL)
+
 from utils import safe_relative_path, safe_path, SERVE_DIRECTORY
 from translations import TRANSLATIONS
 from app import app
@@ -105,6 +108,34 @@ class TestAPIEndpoints(unittest.TestCase):
         # Invalid path traversal attempt
         res = self.client.post('/api/delete', json={'path': '../outside.txt'})
         self.assertEqual(res.status_code, 400)
+
+    def test_index2_all_types_and_uploaded_at(self):
+        # Create a test ROM file
+        test_file = os.path.join(SERVE_DIRECTORY, "recent_test.rom")
+        with open(test_file, "wb") as f:
+            f.write(b"RECENT_TEST")
+
+        res = self.client.get('/index2.php/?type=ALL&char=a&web=1')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertIsInstance(data, list)
+        found = [item for item in data if item['path'] == 'recent_test.rom']
+        self.assertEqual(len(found), 1)
+        self.assertIn('uploaded_at', found[0])
+        self.assertIsNotNone(found[0]['uploaded_at'])
+
+        # Clean up
+        if os.path.exists(test_file):
+            os.remove(test_file)
+
+    def test_homepage_header_link(self):
+        res = self.client.get('/')
+        self.assertEqual(res.status_code, 200)
+        html_content = res.data.decode('utf-8')
+        # Check that header title is enclosed in a link to /
+        self.assertIn('href="/"', html_content)
+        self.assertIn('MSX', html_content)
+        self.assertIn('ROM & DSK Server', html_content)
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,22 +1,56 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="mb-8 p-6 bg-black/40 border border-emerald-900/40 rounded-sm">
-    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-emerald-900/30 pb-4">
-        <h2 class="text-xl text-emerald-300 font-bold uppercase tracking-widest text-center sm:text-left">> RECENT DOWNLOADS</h2>
+<div class="space-y-8">
+    
+    <!-- Top Search & Controls Bar -->
+    <div class="p-6 bg-black/40 border border-emerald-900/40 rounded-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+            <h2 class="text-xl text-emerald-300 font-bold uppercase tracking-widest text-center sm:text-left">
+                > {{ _('home_title') }}
+            </h2>
+            <p class="text-xs text-emerald-600 font-mono mt-1">
+                {{ _('home_desc') }}
+            </p>
+        </div>
         
         <div class="relative w-full sm:w-auto">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-emerald-700">>&nbsp;</span>
-            <input type="text" id="searchInput" placeholder="Search..." 
-                   class="bg-black/60 border border-emerald-800 text-emerald-300 rounded-sm py-1.5 pl-8 pr-4 w-full sm:w-64 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors placeholder-emerald-800" />
+            <input type="text" id="searchInput" placeholder="Search files..." 
+                   class="bg-black/60 border border-emerald-800 text-emerald-300 rounded-sm py-1.5 pl-8 pr-4 w-full sm:w-64 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors placeholder-emerald-800 text-sm font-mono" />
         </div>
     </div>
 
-    <div id="gamesList" class="space-y-3">
-        <div class="text-center py-10 text-emerald-600 animate-pulse">
-            LOADING.COM...
+    <!-- Section 1: Recent Uploads -->
+    <div class="p-6 bg-black/40 border border-emerald-900/40 rounded-sm">
+        <div class="flex justify-between items-center mb-6 border-b border-emerald-900/30 pb-4">
+            <h3 class="text-lg text-emerald-300 font-bold uppercase tracking-widest flex items-center gap-2">
+                <span>📤</span> > {{ _('recent_uploads') }}
+            </h3>
+        </div>
+
+        <div id="recentUploadsList" class="space-y-3">
+            <div class="text-center py-8 text-emerald-600 animate-pulse font-mono text-sm">
+                LOADING.COM...
+            </div>
         </div>
     </div>
+
+    <!-- Section 2: Recent Downloads -->
+    <div class="p-6 bg-black/40 border border-emerald-900/40 rounded-sm">
+        <div class="flex justify-between items-center mb-6 border-b border-emerald-900/30 pb-4">
+            <h3 class="text-lg text-emerald-300 font-bold uppercase tracking-widest flex items-center gap-2">
+                <span>📥</span> > {{ _('recent_downloads') }}
+            </h3>
+        </div>
+
+        <div id="recentDownloadsList" class="space-y-3">
+            <div class="text-center py-8 text-emerald-600 animate-pulse font-mono text-sm">
+                LOADING.COM...
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- Delete Confirmation Modal -->
@@ -44,18 +78,20 @@
 
 {% block scripts %}
 <script>
-    const gamesList = document.getElementById('gamesList');
+    const recentUploadsList = document.getElementById('recentUploadsList');
+    const recentDownloadsList = document.getElementById('recentDownloadsList');
     const searchInput = document.getElementById('searchInput');
-    let allGames = [];
+    let rawGames = [];
 
     const i18n = {
         no_files: "{{ _('no_files') }}",
+        no_recent_uploads: "{{ _('no_recent_uploads') }}",
+        no_recent_downloads: "{{ _('no_recent_downloads') }}",
         download: "{{ _('download') }}"
     };
 
     function formatDate(dateStr) {
         if (!dateStr) return '';
-        // Convert SQLite UTC string to local Date object
         const isoStr = dateStr.replace(' ', 'T') + 'Z';
         const date = new Date(isoStr);
         if (isNaN(date.getTime())) return dateStr;
@@ -75,78 +111,65 @@
 
     async function loadGames() {
         try {
-            const response = await fetch('/index2.php/?type=ROM&char=a&web=1');
+            const response = await fetch('/index2.php/?type=ALL&char=a&web=1');
             if (!response.ok) throw new Error('Network error');
             const data = await response.json();
             
-            if (data.length === 0) {
-                gamesList.innerHTML = `<div class="text-emerald-700 py-8 text-center border border-emerald-900/30 bg-black/20">[ ERROR: ${i18n.no_files} ]</div>`;
-                return;
-            }
+            rawGames = data.map((game, index) => ({
+                id: index,
+                name: game.name,
+                size: game.size,
+                path: game.path,
+                downloads: game.downloads || 0,
+                last_downloaded: game.last_downloaded || null,
+                uploaded_at: game.uploaded_at || null
+            }));
 
-            allGames = data.map((game, index) => {
-                return { 
-                    id: index, 
-                    name: game.name, 
-                    size: game.size, 
-                    path: game.path,
-                    downloads: game.downloads || 0,
-                    last_downloaded: game.last_downloaded || null
-                }; 
-            }).filter(game => game.downloads > 0);
-
-            if (allGames.length === 0) {
-                gamesList.innerHTML = `<div class="text-emerald-700 py-8 text-center border border-emerald-900/30 bg-black/20">[ NO RECENT DOWNLOADS ]</div>`;
-                return;
-            }
-
-            // Sort by: last downloaded (most recent first), then alphabetically
-            allGames.sort((a, b) => {
-                if (a.last_downloaded && !b.last_downloaded) return -1;
-                if (!a.last_downloaded && b.last_downloaded) return 1;
-                if (a.last_downloaded && b.last_downloaded) {
-                    return new Date(b.last_downloaded.replace(' ', 'T') + 'Z') - new Date(a.last_downloaded.replace(' ', 'T') + 'Z');
-                }
-                return a.name.localeCompare(b.name);
-            });
-
-            renderGames(allGames);
+            renderAll(rawGames, searchInput.value.trim().toLowerCase());
         } catch (error) {
-            gamesList.innerHTML = `<div class="text-red-500 py-8 text-center border border-red-900/30 bg-red-950/20">[ FATAL ERROR: ${error.message} ]</div>`;
+            recentUploadsList.innerHTML = `<div class="text-red-500 py-8 text-center border border-red-900/30 bg-red-950/20">[ FATAL ERROR: ${error.message} ]</div>`;
+            recentDownloadsList.innerHTML = '';
         }
     }
 
-    function renderGames(games) {
+    function renderCardList(container, games, emptyMsg) {
         if (games.length === 0) {
-            gamesList.innerHTML = `<div class="text-emerald-700 py-8 text-center border border-emerald-900/30 bg-black/20">[ ERROR: NO MATCHING DATA ]</div>`;
+            container.innerHTML = `<div class="text-emerald-700 py-6 text-center border border-emerald-900/30 bg-black/20 text-sm font-mono">[ ${emptyMsg} ]</div>`;
             return;
         }
 
         let html = '';
-
         games.forEach((game, idx) => {
             const ext = game.path.split('.').pop().toUpperCase();
             
-            let statsText = `SIZE: ${game.size} BYTES | FMT: ${ext}`;
+            let statsText = `SIZE: ${game.size} BYTES`;
+            if (game.uploaded_at) {
+                statsText += ` | UPLOADED: ${formatDate(game.uploaded_at)}`;
+            }
             if (game.downloads > 0) {
                 statsText += ` | DOWNLOADS: ${game.downloads}`;
                 if (game.last_downloaded) {
-                    statsText += ` | LAST: ${formatDate(game.last_downloaded)}`;
+                    statsText += ` (LAST: ${formatDate(game.last_downloaded)})`;
                 }
             } else {
                 statsText += ` | DOWNLOADS: 0`;
             }
 
+            const downloadUrl = `/api/download?path=${encodeURIComponent(game.path)}`;
+
             html += `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-emerald-950/10 border border-emerald-900/20 hover:bg-emerald-900/20 hover:border-emerald-700/50 transition-all rounded-sm group">
                     <div class="flex items-center mb-4 sm:mb-0">
                         <div>
-                            <h4 class="text-emerald-100 font-bold text-lg">${(idx + 1).toString().padStart(2, '0')}. ${game.name}</h4>
+                            <h4 class="text-emerald-100 font-bold text-lg flex items-center gap-2">
+                                <span>${(idx + 1).toString().padStart(2, '0')}. ${game.name}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 border border-emerald-800 bg-emerald-950/60 text-emerald-400 font-mono rounded-xs">${ext}</span>
+                            </h4>
                             <p class="text-emerald-600/80 text-xs mt-1 font-mono">${statsText}</p>
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <a href="/index2.php/?type=ROM&char=a&download=${game.id}" 
+                        <a href="${downloadUrl}" 
                            class="inline-flex items-center justify-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase tracking-wider">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             DOWNLOAD
@@ -160,7 +183,39 @@
                 </div>
             `;
         });
-        gamesList.innerHTML = html;
+        container.innerHTML = html;
+    }
+
+    function renderAll(allData, query) {
+        let filtered = allData;
+        if (query) {
+            filtered = allData.filter(g => g.name.toLowerCase().includes(query) || g.path.toLowerCase().includes(query));
+        }
+
+        // 1. Recent Uploads: sorted by uploaded_at descending
+        const uploads = [...filtered].sort((a, b) => {
+            if (a.uploaded_at && !b.uploaded_at) return -1;
+            if (!a.uploaded_at && b.uploaded_at) return 1;
+            if (a.uploaded_at && b.uploaded_at) {
+                return new Date(b.uploaded_at.replace(' ', 'T') + 'Z') - new Date(a.uploaded_at.replace(' ', 'T') + 'Z');
+            }
+            return a.name.localeCompare(b.name);
+        });
+
+        // 2. Recent Downloads: only those with downloads > 0, sorted by last_downloaded descending
+        const downloads = filtered
+            .filter(g => g.downloads > 0)
+            .sort((a, b) => {
+                if (a.last_downloaded && !b.last_downloaded) return -1;
+                if (!a.last_downloaded && b.last_downloaded) return 1;
+                if (a.last_downloaded && b.last_downloaded) {
+                    return new Date(b.last_downloaded.replace(' ', 'T') + 'Z') - new Date(a.last_downloaded.replace(' ', 'T') + 'Z');
+                }
+                return b.downloads - a.downloads;
+            });
+
+        renderCardList(recentUploadsList, uploads, i18n.no_recent_uploads);
+        renderCardList(recentDownloadsList, downloads, i18n.no_recent_downloads);
     }
 
     const deleteModal = document.getElementById('deleteModal');
@@ -215,9 +270,8 @@
     };
 
     searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        const filtered = allGames.filter(g => g.name.toLowerCase().includes(query));
-        renderGames(filtered);
+        const query = e.target.value.trim().toLowerCase();
+        renderAll(rawGames, query);
     });
 
     loadGames();

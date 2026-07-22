@@ -58,7 +58,12 @@ TRANSLATIONS = {
         "lang_en": "English",
         "table_name": "Naam",
         "table_size": "Grootte",
-        "table_action": "Actie"
+        "table_action": "Actie",
+        "recent_uploads": "Recente Uploads",
+        "recent_downloads": "Recente Downloads",
+        "no_recent_uploads": "Geen recente uploads.",
+        "no_recent_downloads": "Geen recente downloads.",
+        "uploaded": "Geüpload"
     },
     "en": {
         "badge_text": "MSX2 RETRO SERVER",
@@ -119,6 +124,11 @@ TRANSLATIONS = {
         "lang_en": "English",
         "table_name": "Name",
         "table_size": "Size",
-        "table_action": "Action"
+        "table_action": "Action",
+        "recent_uploads": "Recent Uploads",
+        "recent_downloads": "Recent Downloads",
+        "no_recent_uploads": "No recent uploads.",
+        "no_recent_downloads": "No recent downloads.",
+        "uploaded": "Uploaded"
     }
 }
