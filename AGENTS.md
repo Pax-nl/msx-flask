@@ -6,6 +6,9 @@
 - Every solution must be demonstrably based on working code, verifiable research, and facts from the codebase or runtime observations.
 - Work according to KISS (keep it simple), DRY (avoid duplication), and clean code (readable, small, maintainable).
 - Apply OWASP principles where relevant (secure defaults, input validation, least privilege) and Shift Left practices (test, lint, and validate early).
+- Always follow fail-fast and root-cause solving: never hide defects with hardcoded defaults, silent fallbacks, or quick patches.
+- Do not assume causes or runtime behavior; verify with concrete evidence first (logs, reproducible commands, and code-path inspection).
+- Temporary diagnostics are allowed, but production fixes must remove the real cause and not rely on workaround-style masking.
 
 ## Git handoff
 
