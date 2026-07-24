@@ -10,13 +10,19 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 APP_NAME = "msx-flask"
 
 SERVERS = {
-    "dev": {
-        "host": "mm",
+    "mm1": {
+        "host": "mm1",
         "branch": "develop",
         "path": f"/data/websites/{APP_NAME}",
         "user": APP_NAME,
     },
-    "prd": {
+    "mm2": {
+        "host": "mm2",
+        "branch": "develop",
+        "path": f"/data/websites/{APP_NAME}",
+        "user": APP_NAME,
+    },
+    "mm3": {
         "host": "mm3",
         "branch": "develop", # Can be changed to main later
         "path": f"/data/websites/{APP_NAME}",
@@ -63,18 +69,18 @@ def ssh_command_direct(host, cmd, quiet=False, capture_output=False):
         print_cmd(f"[{host}] {cmd}")
     return run_command(ssh_cmd, quiet=quiet, capture_output=capture_output)
 
-def restart_server(env):
-    conf = SERVERS[env]
+def restart_server(server):
+    conf = SERVERS[server]
     print_step(f"Restarting {APP_NAME} on {conf['host']} via OpenRC...")
     ssh_command_direct(conf['host'], f"sudo /sbin/rc-service {APP_NAME} restart", quiet=True)
     print_success("Restart command sent")
 
-def deploy(env):
-    if env not in SERVERS:
-        print_error(f"Unknown environment: {env}")
+def deploy(server):
+    if server not in SERVERS:
+        print_error(f"Unknown server: {server}")
         sys.exit(1)
-    conf = SERVERS[env]
-    print(f"\n🚀 === Deploying {APP_NAME} to {env.upper()} ({conf['host']}) === 🚀")
+    conf = SERVERS[server]
+    print(f"\n🚀 === Deploying {APP_NAME} to {server.upper()} ({conf['host']}) === 🚀")
 
     # Activate maintenance mode
     print_step("Activating Maintenance Mode...")
@@ -93,13 +99,13 @@ def deploy(env):
         else:
             print_success("Dependencies updated")
 
-        restart_server(env)
+        restart_server(server)
     finally:
         # Deactivate maintenance mode
         print_step("Deactivating Maintenance Mode...")
         ssh_command(conf, "rm -f maintenance.flag", quiet=True)
 
-    print(f"\n✨ Deployment to {env.upper()} Complete! ✨\n")
+    print(f"\n✨ Deployment to {server.upper()} Complete! ✨\n")
 
 def local_start():
     port = 5000
@@ -114,20 +120,20 @@ def main():
 
     subparsers.add_parser("start", help="Start local dev server")
     
-    p_deploy = subparsers.add_parser("deploy", help="Deploy to environment")
-    p_deploy.add_argument("env", choices=["dev", "prd"], help="Environment to deploy to")
+    p_deploy = subparsers.add_parser("deploy", help="Deploy to server")
+    p_deploy.add_argument("server", choices=["mm1", "mm2", "mm3"], help="Server to deploy to")
     
     p_restart = subparsers.add_parser("restart", help="Restart application service")
-    p_restart.add_argument("env", choices=["dev", "prd"], help="Target environment")
+    p_restart.add_argument("server", choices=["mm1", "mm2", "mm3"], help="Target server")
 
     args = parser.parse_args()
 
     if args.command == "start":
         local_start()
     elif args.command == "deploy":
-        deploy(args.env)
+        deploy(args.server)
     elif args.command == "restart":
-        restart_server(args.env)
+        restart_server(args.server)
     else:
         parser.print_help()
 

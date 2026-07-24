@@ -19,6 +19,7 @@
 After completing a full implementation update, end the final response with a directly copyable shell block containing the relevant Git commands:
 
 ```bash
+cd /Volumes/Data/websites/msx-flask
 git add <changed-files>
 git commit -m "<concise conventional commit message>"
 git push
