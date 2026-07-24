@@ -84,6 +84,41 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertTrue(res.get_json()['success'])
         self.assertFalse(os.path.exists(uploaded_path))
 
+    def test_api_upload_overwrites_existing_file(self):
+        test_filename = "overwrite_test.rom"
+        test_content_1 = b"FIRST_VERSION"
+        test_content_2 = b"SECOND_VERSION_OVERWRITTEN"
+
+        # First upload
+        data1 = {
+            'file': (io.BytesIO(test_content_1), test_filename),
+            'target_dir': ''
+        }
+        res1 = self.client.post('/api/upload', data=data1, content_type='multipart/form-data')
+        self.assertEqual(res1.status_code, 201)
+        
+        uploaded_path = os.path.join(SERVE_DIRECTORY, test_filename)
+        self.assertTrue(os.path.exists(uploaded_path))
+        
+        # Second upload with same name
+        data2 = {
+            'file': (io.BytesIO(test_content_2), test_filename),
+            'target_dir': ''
+        }
+        res2 = self.client.post('/api/upload', data=data2, content_type='multipart/form-data')
+        self.assertEqual(res2.status_code, 201)
+        res2_json = res2.get_json()
+        self.assertEqual(res2_json['filename'], test_filename)
+
+        # Read the file to ensure it was overwritten
+        with open(uploaded_path, 'rb') as f:
+            content = f.read()
+        self.assertEqual(content, test_content_2)
+
+        # Clean up
+        if os.path.exists(uploaded_path):
+            os.remove(uploaded_path)
+
     def test_api_delete_via_http_delete_method(self):
         # Create dummy file to delete
         dummy_file = os.path.join(SERVE_DIRECTORY, "to_delete.txt")
