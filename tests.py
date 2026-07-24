@@ -163,6 +163,40 @@ class TestAPIEndpoints(unittest.TestCase):
         if os.path.exists(test_file):
             os.remove(test_file)
 
+    def test_index2_sorting_newest_first(self):
+        # Create two files with different mtimes
+        import time
+        file_old = os.path.join(SERVE_DIRECTORY, "old_test.rom")
+        file_new = os.path.join(SERVE_DIRECTORY, "new_test.rom")
+
+        with open(file_old, "wb") as f:
+            f.write(b"OLD")
+        # set mtime in past
+        os.utime(file_old, (time.time() - 100, time.time() - 100))
+
+        with open(file_new, "wb") as f:
+            f.write(b"NEW")
+        # set mtime to now
+        os.utime(file_new, (time.time(), time.time()))
+
+        res = self.client.get('/index2.php/?type=ALL&char=a&web=1')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+
+        # Find the indexes of both files in the list
+        idx_old = next((i for i, item in enumerate(data) if item['path'] == 'old_test.rom'), None)
+        idx_new = next((i for i, item in enumerate(data) if item['path'] == 'new_test.rom'), None)
+
+        self.assertIsNotNone(idx_old)
+        self.assertIsNotNone(idx_new)
+        # New file should be before old file
+        self.assertTrue(idx_new < idx_old, "Newest file should appear first")
+
+        # Clean up
+        for path in (file_old, file_new):
+            if os.path.exists(path):
+                os.remove(path)
+
     def test_homepage_header_link(self):
         res = self.client.get('/')
         self.assertEqual(res.status_code, 200)

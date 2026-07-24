@@ -64,7 +64,7 @@ def list_file_entries(extensions, request_char="a", filter_by_name=True):
                 entries.append((display_name, size, rel_path, mtime))
     unique = []
     seen = set()
-    for entry in sorted(entries, key=lambda item: (item[0], item[2])):
+    for entry in sorted(entries, key=lambda item: (-item[3], item[0], item[2])):
         key = (entry[0], entry[1], entry[2])
         if key not in seen:
             unique.append(entry)
