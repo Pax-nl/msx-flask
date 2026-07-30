@@ -23,7 +23,7 @@ cd /Volumes/Data/websites/msx-flask
 git add <changed-files>
 git commit -m "<concise conventional commit message>"
 git push
-./.venv/bin/python ./scripts/manage_app.py deploy mm3
+manage_ws deploy msx-flask prd
 ```
 
 List only files changed for the completed update. Choose the commit message based on the actual change; do not leave placeholders in the delivered commands.
