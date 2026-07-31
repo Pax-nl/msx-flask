@@ -20,11 +20,11 @@ MSX ROM & DSK Server is a lightweight, modern web application designed to serve 
 
 ## Deployment
 
-The application is deployed securely via SSH using the provided `scripts/manage_webapp.py` script.
+The application is deployed securely via SSH using the global `manage_ws` tool.
 
 To deploy to production:
 ```bash
-python scripts/manage_webapp.py deploy prd
+manage_ws deploy msx-flask prd
 ```
 
 ### Infrastructure Note
