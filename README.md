@@ -18,14 +18,28 @@ MSX ROM & DSK Server is a lightweight, modern web application designed to serve 
 3. Access the web interface on your local network to browse your collection.
 4. The server automatically ensures all `.rom` files meet the 8KB minimum size requirement for MSX Pico compatibility during the download process.
 
-## Deployment
+## Setup & Deployment (Docker)
 
-The application is deployed securely via SSH using the global `manage_ws` tool.
+The recommended way to run this server is using Docker Compose.
 
-To deploy to production:
-```bash
-manage_ws deploy msx-flask prd
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Pax-nl/msx-flask.git
+   cd msx-flask
+   ```
+2. Copy the example environment file and configure it if needed:
+   ```bash
+   cp .env.example .env
+   ```
+3. Start the container in the background:
+   ```bash
+   docker compose up -d
+   ```
+The web server will now be available on port 80 (or the port you configured in `.env`). Your uploaded files are stored safely in the `files/` directory, which is persistently mounted.
 
-### Infrastructure Note
-This project utilizes a built-in virtual environment deployment structure `python3 -m venv`. Earlier Ansible iterations relying on the standalone `virtualenv` module caused executable permission loss on Alpine Linux, which has now been fully resolved.
+## MSX Pico Configuration
+
+To use the server directly from your MSX Pico cartridge:
+1. Ensure your MSX Pico is connected to the same WiFi network as your Docker host.
+2. Configure your MSX Pico's server settings (usually via its configuration file on the SD card or its own web interface) to point to your new server's IP address (e.g., `http://192.168.1.100/`).
+3. You can now browse and download ROMs directly from your MSX! The server automatically pads any small `.rom` files to the 8KB minimum requirement during the transfer so they run perfectly on the Pico hardware.
