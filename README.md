@@ -2,7 +2,7 @@
 
 MSX ROM & DSK Server is a lightweight, modern web application designed to serve retro MSX game ROMs, COM files, and DSK images directly to your MSX Pico or other compatible flash cartridges.
 
-![MSX ROM Server Interface](msx_flask_ui.jpg)
+![MSX ROM Server Interface](msx_flask_ui.png)
 
 ## Features
 
