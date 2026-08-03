@@ -27,10 +27,11 @@
             <h3 class="text-lg text-emerald-300 font-bold uppercase tracking-widest flex items-center gap-2">
                 <span>📤</span> > {{ _('recent_uploads') }}
             </h3>
-            <a href="{{ url_for('manage') }}"
-               class="inline-flex items-center justify-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase tracking-wider whitespace-nowrap">
+                <button id="openUploadModal"
+                    class="inline-flex items-center justify-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-sm font-bold uppercase tracking-wider whitespace-nowrap cursor-pointer"
+                    type="button">
                 UPLOAD
-            </a>
+                </button>
         </div>
 
         <div id="recentUploadsList" class="space-y-3">
@@ -57,9 +58,35 @@
 
 </div>
 
-<!-- Delete Confirmation Modal -->
 {% set modal_overlay = "fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] items-center justify-center p-4 hidden" %}
 {% set modal_content = "bg-[#050505] border border-emerald-700 shadow-[0_0_40px_rgba(16,185,129,0.15)] w-full max-w-md relative overflow-hidden" %}
+
+<!-- Upload Modal -->
+<div class="{{ modal_overlay }}" id="uploadModal" style="display: none;">
+    <div class="{{ modal_content }}">
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+        <div class="p-4 border-b border-emerald-900/30 bg-emerald-950/20 flex justify-between items-center relative z-10">
+            <h3 class="text-emerald-400 font-bold tracking-wider">> UPLOAD</h3>
+            <button id="closeUploadModal" class="text-emerald-600 hover:text-red-500 font-bold text-sm tracking-wide cursor-pointer" type="button">[X]</button>
+        </div>
+        <div class="p-6 relative z-10">
+            <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
+                <div>
+                    <label for="uploadFile" class="block text-emerald-700 text-xs font-bold mb-2 uppercase tracking-wide">FILE</label>
+                    <input id="uploadFile" type="file" name="file" required class="block w-full text-sm text-emerald-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-emerald-900/40 file:text-emerald-300 hover:file:bg-emerald-700 bg-black/60 border border-emerald-800 p-2">
+                </div>
+                <div>
+                    <label for="uploadTargetDir" class="block text-emerald-700 text-xs font-bold mb-2 uppercase tracking-wide">TARGET FOLDER (OPTIONAL)</label>
+                    <input id="uploadTargetDir" type="text" name="target_dir" placeholder="e.g. roms/rpg" class="w-full bg-black/60 border border-emerald-800 text-emerald-100 p-2.5 rounded-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm">
+                </div>
+                <div id="uploadStatus" class="hidden text-xs font-mono p-3 border rounded-sm"></div>
+                <button id="submitUploadBtn" type="submit" class="w-full py-3 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm font-bold uppercase tracking-widest cursor-pointer">UPLOAD FILE</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
 
 <div class="{{ modal_overlay }}" id="deleteModal" style="display: none;">
     <div class="{{ modal_content }} border-red-900/50">
@@ -85,6 +112,12 @@
     const recentUploadsList = document.getElementById('recentUploadsList');
     const recentDownloadsList = document.getElementById('recentDownloadsList');
     const searchInput = document.getElementById('searchInput');
+    const openUploadModalBtn = document.getElementById('openUploadModal');
+    const uploadModal = document.getElementById('uploadModal');
+    const closeUploadModalBtn = document.getElementById('closeUploadModal');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const submitUploadBtn = document.getElementById('submitUploadBtn');
     let rawGames = [];
 
     const i18n = {
@@ -227,6 +260,77 @@
     const deleteConfirmText = document.getElementById('deleteConfirmText');
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
+    function showUploadStatus(message, isError = false) {
+        uploadStatus.textContent = message;
+        uploadStatus.classList.remove('hidden', 'border-red-900/50', 'bg-red-950/20', 'text-red-400', 'border-emerald-900/50', 'bg-emerald-950/20', 'text-emerald-300');
+        if (isError) {
+            uploadStatus.classList.add('border-red-900/50', 'bg-red-950/20', 'text-red-400');
+            return;
+        }
+        uploadStatus.classList.add('border-emerald-900/50', 'bg-emerald-950/20', 'text-emerald-300');
+    }
+
+    function resetUploadModal() {
+        uploadForm.reset();
+        uploadStatus.classList.add('hidden');
+        uploadStatus.textContent = '';
+        submitUploadBtn.disabled = false;
+        submitUploadBtn.textContent = 'UPLOAD FILE';
+    }
+
+    openUploadModalBtn.onclick = () => {
+        resetUploadModal();
+        uploadModal.style.display = 'flex';
+        uploadModal.classList.remove('hidden');
+    };
+
+    closeUploadModalBtn.onclick = () => {
+        uploadModal.style.display = 'none';
+        uploadModal.classList.add('hidden');
+    };
+
+    uploadForm.onsubmit = async (event) => {
+        event.preventDefault();
+        const fileInput = document.getElementById('uploadFile');
+        if (!fileInput.files || fileInput.files.length === 0) {
+            showUploadStatus('Please select a file.', true);
+            return;
+        }
+
+        submitUploadBtn.disabled = true;
+        submitUploadBtn.textContent = 'UPLOADING...';
+
+        const formData = new FormData(uploadForm);
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                showUploadStatus(result.error || 'Upload failed.', true);
+                submitUploadBtn.disabled = false;
+                submitUploadBtn.textContent = 'UPLOAD FILE';
+                return;
+            }
+
+            showUploadStatus(result.message || 'Upload completed.');
+            await loadGames();
+
+            setTimeout(() => {
+                uploadModal.style.display = 'none';
+                uploadModal.classList.add('hidden');
+                resetUploadModal();
+            }, 700);
+        } catch (error) {
+            showUploadStatus(error.message || 'Upload failed.', true);
+            submitUploadBtn.disabled = false;
+            submitUploadBtn.textContent = 'UPLOAD FILE';
+        }
+    };
+
     window.confirmDelete = function(encodedPath, name) {
         const path = decodeURIComponent(encodedPath);
         const fileName = decodeURIComponent(name);
@@ -247,6 +351,10 @@
         if (event.target == deleteModal) {
             deleteModal.style.display = 'none';
             deleteModal.classList.add('hidden');
+        }
+        if (event.target == uploadModal) {
+            uploadModal.style.display = 'none';
+            uploadModal.classList.add('hidden');
         }
     });
 
