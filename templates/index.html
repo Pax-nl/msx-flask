@@ -73,7 +73,13 @@
             <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
                 <div>
                     <label for="uploadFile" class="block text-emerald-700 text-xs font-bold mb-2 uppercase tracking-wide">FILE</label>
-                    <input id="uploadFile" type="file" name="file" required class="block w-full text-sm text-emerald-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-emerald-900/40 file:text-emerald-300 hover:file:bg-emerald-700 bg-black/60 border border-emerald-800 p-2">
+                    <input id="uploadFile" type="file" name="file" required class="sr-only">
+                    <div class="flex items-center gap-3 border border-emerald-800 bg-black/60 p-2 rounded-sm">
+                        <label for="uploadFile" id="uploadFileTrigger" role="button" tabindex="0" class="inline-flex items-center justify-center px-4 py-2 bg-emerald-900/40 border border-emerald-700 text-emerald-300 hover:bg-emerald-700 hover:text-emerald-50 transition-colors rounded-sm text-xs font-bold uppercase tracking-widest cursor-pointer whitespace-nowrap">
+                            CHOOSE FILE
+                        </label>
+                        <span id="uploadFileName" class="text-sm text-emerald-300 truncate font-mono">NO FILE SELECTED</span>
+                    </div>
                 </div>
                 <div>
                     <label for="uploadTargetDir" class="block text-emerald-700 text-xs font-bold mb-2 uppercase tracking-wide">TARGET FOLDER (OPTIONAL)</label>
@@ -116,6 +122,9 @@
     const uploadModal = document.getElementById('uploadModal');
     const closeUploadModalBtn = document.getElementById('closeUploadModal');
     const uploadForm = document.getElementById('uploadForm');
+    const uploadFileInput = document.getElementById('uploadFile');
+    const uploadFileName = document.getElementById('uploadFileName');
+    const uploadFileTrigger = document.getElementById('uploadFileTrigger');
     const uploadStatus = document.getElementById('uploadStatus');
     const submitUploadBtn = document.getElementById('submitUploadBtn');
     let rawGames = [];
@@ -272,11 +281,26 @@
 
     function resetUploadModal() {
         uploadForm.reset();
+        uploadFileName.textContent = 'NO FILE SELECTED';
         uploadStatus.classList.add('hidden');
         uploadStatus.textContent = '';
         submitUploadBtn.disabled = false;
         submitUploadBtn.textContent = 'UPLOAD FILE';
     }
+
+    uploadFileInput.onchange = () => {
+        const file = uploadFileInput.files && uploadFileInput.files.length > 0
+            ? uploadFileInput.files[0].name
+            : 'NO FILE SELECTED';
+        uploadFileName.textContent = file;
+    };
+
+    uploadFileTrigger.onkeydown = (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            uploadFileInput.click();
+        }
+    };
 
     openUploadModalBtn.onclick = () => {
         resetUploadModal();
@@ -291,8 +315,7 @@
 
     uploadForm.onsubmit = async (event) => {
         event.preventDefault();
-        const fileInput = document.getElementById('uploadFile');
-        if (!fileInput.files || fileInput.files.length === 0) {
+        if (!uploadFileInput.files || uploadFileInput.files.length === 0) {
             showUploadStatus('Please select a file.', true);
             return;
         }
