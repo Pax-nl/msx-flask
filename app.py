@@ -8,9 +8,13 @@ import sys
 import json
 import shutil
 import logging
+import ipaddress
+import socket
+import subprocess
+import time
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
-from flask import Flask, request, Response, render_template, redirect, url_for, session, send_file
+from flask import Flask, request, Response, render_template, redirect, url_for, session, send_file, jsonify
 from werkzeug.utils import secure_filename
 
 from utils import (
@@ -25,6 +29,7 @@ from translations import TRANSLATIONS
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+APP_START_TIME = time.monotonic()
 
 # --- Logging Configuration ---
 
@@ -59,6 +64,41 @@ def render_manage(message=None):
     """Helper to consistently render the manage page with listing."""
     return render_template("manage.html", message=message, items=list_directory_structured())
 
+
+def _is_internal_request() -> bool:
+    remote_addr = request.remote_addr
+    if not remote_addr:
+        return False
+    try:
+        ip = ipaddress.ip_address(remote_addr)
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_unspecified
+
+
+def _get_version() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "describe", "--tags", "--always", "--long"],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            text=True,
+            stderr=subprocess.STDOUT,
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+def _health_payload() -> dict:
+    return {
+        "status": "ok",
+        "service": "msx-flask",
+        "version": _get_version(),
+        "hostname": socket.gethostname(),
+        "environment": os.getenv("FLASK_ENV", "production"),
+        "uptime_seconds": round(time.monotonic() - APP_START_TIME, 3),
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+
 # --- Context Processors ---
 
 @app.context_processor
@@ -85,6 +125,13 @@ def set_lang(lang):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/health/getstatus")
+def health():
+    if not _is_internal_request():
+        return jsonify({"status": "forbidden", "service": "msx-flask"}), 403
+    return jsonify(_health_payload())
 
 @app.route("/manage")
 def manage():
