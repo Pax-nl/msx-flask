@@ -20,6 +20,7 @@ from werkzeug.utils import secure_filename
 from utils import (
     SERVE_DIRECTORY,
     safe_path,
+    timestamp_filename,
     list_file_entries,
     list_directory_structured,
     get_download_stats,
@@ -149,6 +150,7 @@ def upload_file():
     if not filename:
         session['manage_message'] = get_msg("msg_invalid_filename")
         return redirect(url_for('manage'))
+    filename = timestamp_filename(filename)
     
     target_dir = request.form.get("target_dir", "")
     try:
@@ -215,6 +217,7 @@ def api_upload_file():
     filename = secure_filename(upload.filename)
     if not filename:
         return {"success": False, "error": get_msg("msg_invalid_filename")}, 400
+    filename = timestamp_filename(filename)
     
     target_dir = request.form.get("target_dir", "") or request.form.get("path", "")
     if request.is_json and request.json and not target_dir:

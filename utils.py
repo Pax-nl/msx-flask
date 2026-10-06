@@ -27,6 +27,14 @@ def safe_path(relative_path):
         raise ValueError("Path outside serve directory")
     return destination
 
+def timestamp_filename(filename, dt=None):
+    """Prefix a filename with datetime stamp (YYYYMMDD_HHMMSS_filename)."""
+    if dt is None:
+        from datetime import datetime
+        dt = datetime.now()
+    timestamp = dt.strftime("%Y%m%d_%H%M%S")
+    return f"{timestamp}_{filename}"
+
 def list_file_entries(extensions, request_char="a", filter_by_name=True):
     entries = []
     for root, _, filenames in os.walk(SERVE_DIRECTORY):

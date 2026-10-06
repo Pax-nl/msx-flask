@@ -34,6 +34,13 @@ class TestMSXServer(unittest.TestCase):
         en_keys = set(TRANSLATIONS["en"].keys())
         self.assertEqual(nl_keys, en_keys, "NL and EN translation keys must match!")
 
+    def test_timestamp_filename(self):
+        from utils import timestamp_filename
+        from datetime import datetime
+        fixed_dt = datetime(2026, 10, 6, 18, 30, 45)
+        stamped = timestamp_filename("game.rom", dt=fixed_dt)
+        self.assertEqual(stamped, "20261006_183045_game.rom")
+
 class TestAPIEndpoints(unittest.TestCase):
     def setUp(self):
         app.config['TESTING'] = True
@@ -53,9 +60,10 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(res.status_code, 201)
         res_json = res.get_json()
         self.assertTrue(res_json['success'])
-        self.assertEqual(res_json['filename'], test_filename)
+        uploaded_filename = res_json['filename']
+        self.assertTrue(uploaded_filename.endswith(f"_{test_filename}"))
         
-        uploaded_path = os.path.join(SERVE_DIRECTORY, test_filename)
+        uploaded_path = os.path.join(SERVE_DIRECTORY, uploaded_filename)
         self.assertTrue(os.path.exists(uploaded_path))
 
         # 2. Test File List API
@@ -64,58 +72,44 @@ class TestAPIEndpoints(unittest.TestCase):
         res_json = res.get_json()
         self.assertTrue(res_json['success'])
         file_names = [f['name'] for f in res_json['files']]
-        self.assertIn(test_filename, file_names)
+        self.assertIn(uploaded_filename, file_names)
 
         # 3. Test File Download via Path
-        res = self.client.get(f'/api/download/{test_filename}')
+        res = self.client.get(f'/api/download/{uploaded_filename}')
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data, test_content)
         res.close()
 
         # Test File Download via Query Param
-        res = self.client.get(f'/api/download?path={test_filename}')
+        res = self.client.get(f'/api/download?path={uploaded_filename}')
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data, test_content)
         res.close()
 
         # 4. Test File Delete via API (POST JSON)
-        res = self.client.post('/api/delete', json={'path': test_filename})
+        res = self.client.post('/api/delete', json={'path': uploaded_filename})
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.get_json()['success'])
         self.assertFalse(os.path.exists(uploaded_path))
 
-    def test_api_upload_overwrites_existing_file(self):
-        test_filename = "overwrite_test.rom"
-        test_content_1 = b"FIRST_VERSION"
-        test_content_2 = b"SECOND_VERSION_OVERWRITTEN"
+    def test_api_upload_adds_timestamp(self):
+        test_filename = "unique_stamp_test.rom"
+        test_content = b"TIMESTAMP_TEST"
 
-        # First upload
-        data1 = {
-            'file': (io.BytesIO(test_content_1), test_filename),
+        data = {
+            'file': (io.BytesIO(test_content), test_filename),
             'target_dir': ''
         }
-        res1 = self.client.post('/api/upload', data=data1, content_type='multipart/form-data')
-        self.assertEqual(res1.status_code, 201)
+        res = self.client.post('/api/upload', data=data, content_type='multipart/form-data')
+        self.assertEqual(res.status_code, 201)
+        res_json = res.get_json()
+        saved_name = res_json['filename']
         
-        uploaded_path = os.path.join(SERVE_DIRECTORY, test_filename)
+        import re
+        self.assertTrue(re.match(r"^\d{8}_\d{6}_unique_stamp_test\.rom$", saved_name))
+        
+        uploaded_path = os.path.join(SERVE_DIRECTORY, saved_name)
         self.assertTrue(os.path.exists(uploaded_path))
-        
-        # Second upload with same name
-        data2 = {
-            'file': (io.BytesIO(test_content_2), test_filename),
-            'target_dir': ''
-        }
-        res2 = self.client.post('/api/upload', data=data2, content_type='multipart/form-data')
-        self.assertEqual(res2.status_code, 201)
-        res2_json = res2.get_json()
-        self.assertEqual(res2_json['filename'], test_filename)
-
-        # Read the file to ensure it was overwritten
-        with open(uploaded_path, 'rb') as f:
-            content = f.read()
-        self.assertEqual(content, test_content_2)
-
-        # Clean up
         if os.path.exists(uploaded_path):
             os.remove(uploaded_path)
 
